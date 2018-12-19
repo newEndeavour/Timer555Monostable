@@ -1,0 +1,5 @@
+Timer555Monostable	KEYWORD1
+Capacitance		KEYWORD2
+CapacitanceRaw		KEYWORD3
+Frequency		KEYWORD4
+Period			KEYWORD5
