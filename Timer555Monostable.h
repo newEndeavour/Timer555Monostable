@@ -8,7 +8,9 @@
   Capacitance is derived via 555 Timer IC set via a Multivibrator in Monostable mode, and one Resistor R1
   Capacitance by default is expressed in NanoFarads 
 	
-	C = a.b.T / (1,1 . R) ; with T in seconds and C in nF  (Note: precise RC Constant is 1.0986 = ln(3))
+	C = (a x b x T) / (1.1 x R1) ; with T in seconds and C in nF
+	C		: Capacitance in nF
+	R1		: Resistance in Ohms
 	a = 1E9		: 1,000,000,000 nano Farads in 1 Farad (FARADS_TO_NANOFARADS)
 	b = 1E-6 	: 1,000,000 microseconds in one second (SECONDS_TO_MICROS)
   
@@ -214,34 +216,36 @@ class Timer555Monostable
   // user-accessible "public" interface
   public:
   // methods
-	Timer555Monostable(uint8_t _TriggerPin, uint8_t _OutputPin, uint32_t R1, float Biais);
-	float GetCapacitanceValue(uint8_t samples);
-	float GetCapacitanceValueRaw(uint8_t samples);
+	Timer555Monostable(uint8_t _TriggerPin, uint8_t _OutputPin, uint32_t _R1, float _Biais);
+	float CalcCapacitanceValue(uint8_t samples);
+	float GetLastCapacitanceValueRaw();
 	float GetLastFrequency(void);
 	uint32_t GetLastPeriod(void);
+	void set_Biais_Correction(float _Biais_Correction);
+	void set_Autocal_Millis(unsigned long _AutoCal_Millis);
 
   // library-accessible "private" interface
   private:
   // variables
 	int error;
+	//uint8_t OutputPin;
+	//uint8_t TriggerPin;
 	uint32_t Resist_R1;
 	uint32_t Period;
 	unsigned long StartTimer;
 	unsigned long StopTimer;
 	float Capacitance;
-	float Capacitance_Raw;
 	float Frequency;
 	float Biais_Correction;
+	unsigned long AutoCal_Millis;
 
-	uint8_t TriggerPin;
-	uint8_t OutputPin;
 	IO_REG_TYPE sBit;   	// Trigger pin's ports and bitmask
 	volatile IO_REG_TYPE *sReg;
 	IO_REG_TYPE rBit;    	// Output pin's ports and bitmask
 	volatile IO_REG_TYPE *rReg;
 
   // methods
-	int SingleRead(void);
+	int OneCycle(void);
 };
 
 #endif
