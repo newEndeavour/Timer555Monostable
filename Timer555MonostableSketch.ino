@@ -45,7 +45,7 @@ void loop() {
 
   float Cap1 = Timer555.GetCapacitanceValue(1);
   float Cap2 = Timer555.GetCapacitanceValue(10);
-  float Cap3 = Timer555.GetCapacitanceValueRaw(1);
+  float Cap3 = Timer555.GetLastCapacitanceValueRaw();
   
   //Default unit = nF
   int display_factor = 1;
