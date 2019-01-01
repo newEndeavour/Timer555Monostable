@@ -208,6 +208,7 @@ void directWriteHigh(volatile IO_REG_TYPE *base, IO_REG_TYPE pin)
 // CONSTANTS /////////////////////////////////////////////////////////////
 #define FARADS_TO_NANOFARADS 	1E9
 #define SECONDS_TO_MICROS 	1E6
+#define LOGNEPERIEN		log(3)
 
 
 // library interface description ////////////////////////////////////////
@@ -217,7 +218,7 @@ class Timer555Monostable
   public:
   // methods
 	Timer555Monostable(uint8_t _TriggerPin, uint8_t _OutputPin, uint32_t _R1, float _Biais);
-	float CalcCapacitanceValue(uint8_t samples);
+	float GetCapacitanceValue(uint8_t samples);
 	float GetLastCapacitanceValueRaw();
 	float GetLastFrequency(void);
 	uint32_t GetLastPeriod(void);

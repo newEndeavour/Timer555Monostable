@@ -73,7 +73,7 @@ Timer555Monostable::Timer555Monostable(uint8_t _TriggerPin, uint8_t _OutputPin, 
 // Public Methods //////////////////////////////////////////////////////////////
 // Functions available in Wiring sketches, this library, and other libraries
 
-float Timer555Monostable::CalcCapacitanceValue(uint8_t samples)
+float Timer555Monostable::GetCapacitanceValue(uint8_t samples)
 {
 	// Set results to zero before start of read
 	Period		= 0;
@@ -133,22 +133,22 @@ int Timer555Monostable::OneCycle(void) {
     
     noInterrupts();
     	//Pulse Trigger Low
-    	StartTimer = micros();
     	DIRECT_WRITE_LOW(sReg, sBit);	// TriggerPin Register low -> 555 Trigger
-    	delayMicroseconds(1);
+    	//delayMicroseconds(1);		// Not required: DIRAC pulse duration approx 200ns without 1us delay
     	DIRECT_WRITE_HIGH(sReg, sBit);	// TriggerPin Register high -> Stop Trigger pulse    
     interrupts();
  
-    //int total = 0;
+    StartTimer = micros();		// Start Timer
+    //int total = 0;			// Note: We don't have to count cycles: wait for Flip-Flop to invert Voltage and O/P Pin to get Low
     // while Output pin is HIGH 
     while (DIRECT_READ(rReg, rBit)) {
-        //total++;
+        //total++;			
     }
-    StopTimer   = micros();
+    StopTimer   = micros();		// Stop Timer
         	
     // Calculate Capacitance	
     Period      	= StopTimer - StartTimer;
-    Capacitance 	+= FARADS_TO_NANOFARADS/SECONDS_TO_MICROS * (Period*Biais_Correction) / (1.0986 * Resist_R1);
+    Capacitance 	+= FARADS_TO_NANOFARADS/SECONDS_TO_MICROS * (Period*Biais_Correction) / (LOGNEPERIEN * Resist_R1);
     Frequency   	= 1 / (Period/SECONDS_TO_MICROS);
     
     /*	
