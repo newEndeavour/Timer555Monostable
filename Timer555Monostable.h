@@ -3,7 +3,7 @@
   Version: 0.0.1
   Created: 19-Dec-2018
   Author: Jerome Drouin
-  https://github.com/JeromeDrouin/Timer555Monostable
+  https://github.com/newEndeavour/Timer555Monostable
   Capacitive Meter Library for 'duino / Wiring
   Capacitance is derived via 555 Timer IC set via a Multivibrator in Monostable mode, and one Resistor R1
   Capacitance by default is expressed in NanoFarads 
