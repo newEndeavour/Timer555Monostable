@@ -1,10 +1,12 @@
 /*
-  Timer555Monostable.cpp v.01 - 
-  Version: 0.0.1
-  Author: Jerome Drouin
+  File:         Timer555Monostable.cpp
+  Version:      0.0.1
+  Date:         19-Dec-2018
+  Revision:     07-Jan-2019
+  Author:       Jerome Drouin
   https://github.com/newEndeavour/Timer555Monostable
   Capacitive Meter Library for 'duino / Wiring
-  Capacitance is derived via 555 Timer IC set via a Multivibrator in Monostable mode, and one Resistor R1
+  Capacitance is derived via 555 Timer IC in Monostable mode, and one Resistor R1
   Capacitance by default is expressed in NanoFarads 
 	
 	C = (a x b x T) / (1.1 x R1) ; with T in seconds and C in nF
@@ -58,10 +60,6 @@ Timer555Monostable::Timer555Monostable(uint8_t _TriggerPin, uint8_t _OutputPin, 
 	if (_OutputPin >= NUM_DIGITAL_PINS) error = -1;
 	#endif
 
-	//Pins (Not required as we use registers)
-	//TriggerPin 		=  _TriggerPin;
-	//OutputPin 		=  _OutputPin;
-
 	//Auto Calibration
 	AutoCal_Millis 		= 20000;
 
@@ -87,12 +85,13 @@ Timer555Monostable::Timer555Monostable(uint8_t _TriggerPin, uint8_t _OutputPin, 
 // Public Methods //////////////////////////////////////////////////////////////
 // Functions available in Wiring sketches, this library, and other libraries
 
-float Timer555Monostable::GetCapacitanceValue(uint8_t samples)
+float Timer555Monostable::GetCapacitance(uint8_t samples)
 {
 	// Set results to zero before start of read
 	Period		= 0;
 	Frequency       = 0;
 	Capacitance     = 0;
+	TotalLoopCount	= 0;
 
 	if (samples == 0) return 0;
 	if (error < 0) return -1;            // bad pin
@@ -102,16 +101,29 @@ float Timer555Monostable::GetCapacitanceValue(uint8_t samples)
 		if (OneCycle() < 0)  return -2;   	// variable over timeout
 	}
 
+	//Updates other variables
+	TotalLoopCount 	= (long)(TotalLoopCount / samples);
+	Frequency	= Frequency / samples;
+	Period		= Period / samples;
+	Capacitance	= Capacitance / samples;
+
 	// Capacitance is the average of all reads
-	return Capacitance/samples;
+	return Capacitance;
 
 }
 
+float Timer555Monostable::GetLastCapacitance()
+{
+	// Returns the last available calculated Capacitance
+	return Capacitance;
 
-float Timer555Monostable::GetLastCapacitanceValueRaw()
+}
+
+float Timer555Monostable::GetLastCapacitanceRaw()
 {
 	// Returns the last available calculated Capacitance Raw
-	return Capacitance/Biais_Correction;
+	return Capacitance / Biais_Correction;
+
 }
 
 float Timer555Monostable::GetLastFrequency(void)
@@ -125,6 +137,12 @@ uint32_t Timer555Monostable::GetLastPeriod(void)
 {
 	// Returns the last available calculated Period in microseconds
 	return Period;
+}
+
+uint32_t Timer555Monostable::GetLastTotalLoopCount(void)
+{
+	// Returns the last available calculated GetLastTotalLoopCount
+	return TotalLoopCount;
 }
 
 void Timer555Monostable::set_Biais_Correction(float _Biais_Correction)
@@ -144,7 +162,8 @@ void Timer555Monostable::set_Autocal_Millis(unsigned long _AutoCal_Millis)
 // Functions only available to other functions in this library
 
 int Timer555Monostable::OneCycle(void) {
-    
+long Dur;    
+
     noInterrupts();
     	//Pulse Trigger Low
     	DIRECT_WRITE_LOW(sReg, sBit);	// TriggerPin Register low -> 555 Trigger
@@ -152,18 +171,17 @@ int Timer555Monostable::OneCycle(void) {
     	DIRECT_WRITE_HIGH(sReg, sBit);	// TriggerPin Register high -> Stop Trigger pulse    
     interrupts();
  
-    StartTimer = micros();		// Start Timer
-    //int total = 0;			// Note: We don't have to count cycles: wait for Flip-Flop to invert Voltage and O/P Pin to get Low
-    // while Output pin is HIGH 
-    while (DIRECT_READ(rReg, rBit)) {
-        //total++;			
+    StartTimer = micros();		// Start Timer 
+    while (DIRECT_READ(rReg, rBit)) {	// while Output pin is HIGH
+        TotalLoopCount++;				
     }
     StopTimer   = micros();		// Stop Timer
         	
     // Calculate Capacitance	
-    Period      	= StopTimer - StartTimer;
-    Capacitance 	+= FARADS_TO_NANOFARADS/SECONDS_TO_MICROS * (Period*Biais_Correction) / (LOGNEPERIEN * Resist_R1);
-    Frequency   	= 1 / (Period/SECONDS_TO_MICROS);
+    Dur		      	= StopTimer - StartTimer;
+    Period		+= Dur;
+    Frequency   	+= 1 / (Dur/SECONDS_TO_MICROS);
+    Capacitance 	+= FARADS_TO_NANOFARADS/SECONDS_TO_MICROS * (Dur*Biais_Correction) / (LOGNEPERIEN_3 * Resist_R1);
     
     /*	
     //DEBUG

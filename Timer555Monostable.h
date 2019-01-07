@@ -1,11 +1,12 @@
 /*
-  Timer555Monostable.h v.01 - 
-  Version: 0.0.1
-  Created: 19-Dec-2018
-  Author: Jerome Drouin
+  File:         Timer555Monostable.h
+  Version:      0.0.1
+  Date:         19-Dec-2018
+  Revision:     07-Jan-2019
+  Author:       Jerome Drouin
   https://github.com/newEndeavour/Timer555Monostable
   Capacitive Meter Library for 'duino / Wiring
-  Capacitance is derived via 555 Timer IC set via a Multivibrator in Monostable mode, and one Resistor R1
+  Capacitance is derived via 555 Timer IC in Monostable mode, and one Resistor R1
   Capacitance by default is expressed in NanoFarads 
 	
 	C = (a x b x T) / (1.1 x R1) ; with T in seconds and C in nF
@@ -223,7 +224,7 @@ void directWriteHigh(volatile IO_REG_TYPE *base, IO_REG_TYPE pin)
 // CONSTANTS /////////////////////////////////////////////////////////////
 #define FARADS_TO_NANOFARADS 	1E9
 #define SECONDS_TO_MICROS 	1E6
-#define LOGNEPERIEN		log(3)
+#define LOGNEPERIEN_3		log(3)
 
 
 // library interface description ////////////////////////////////////////
@@ -233,9 +234,13 @@ class Timer555Monostable
   public:
   // methods
 	Timer555Monostable(uint8_t _TriggerPin, uint8_t _OutputPin, uint32_t _R1, float _Biais);
-	float GetCapacitanceValue(uint8_t samples);
-	float GetLastCapacitanceValueRaw();
+
+	float GetCapacitance(uint8_t samples);
+
+	float GetLastCapacitance();
+	float GetLastCapacitanceRaw();
 	float GetLastFrequency(void);
+	uint32_t GetLastTotalLoopCount(void);
 	uint32_t GetLastPeriod(void);
 	void set_Biais_Correction(float _Biais_Correction);
 	void set_Autocal_Millis(unsigned long _AutoCal_Millis);
@@ -244,15 +249,14 @@ class Timer555Monostable
   private:
   // variables
 	int error;
-	//uint8_t OutputPin;
-	//uint8_t TriggerPin;
-	uint32_t Resist_R1;
-	uint32_t Period;
 	unsigned long StartTimer;
 	unsigned long StopTimer;
-	float Capacitance;
-	float Frequency;
-	float Biais_Correction;
+	uint32_t Resist_R1;
+	uint32_t Period;
+	uint32_t TotalLoopCount;
+	float 	 Capacitance;
+	float 	 Frequency;
+	float 	 Biais_Correction;
 	unsigned long AutoCal_Millis;
 
 	IO_REG_TYPE sBit;   	// Trigger pin's ports and bitmask
