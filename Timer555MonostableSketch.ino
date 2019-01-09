@@ -1,8 +1,8 @@
 /*
   File:         Timer555Monostable
-  Version:      0.0.1
+  Version:      0.0.2
   Date:         19-Dec-2018
-  Revision:     07-Jan-2019
+  Revision:     09-Jan-2019
   Author:       Jerome Drouin
   https://github.com/newEndeavour/Timer555Monostable
   Capacitive Meter Library for 'duino / Wiring
@@ -13,7 +13,7 @@
   a = 1E9   : 1,000,000,000 nano Farads in 1 Farad (FARADS_TO_NANOFARADS)
   b = 1E-6  : 1,000,000 microseconds in one second (SECONDS_TO_MICROS)
   
-  Copyright (c) 2018 Jerome Drouin  All rights reserved.  
+  Copyright (c) 2018-2019 Jerome Drouin  All rights reserved.  
 
   This program is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -30,9 +30,10 @@
 
 */
 
-
 #include <Timer555Monostable.h>
- 
+
+#define CAP_BASELINE            0.370   // Baseline for Empty Capacitance in nF/Enter 0.0 is not in use
+
 #define FARADS_TO_NANOFARADS    1E9   // 1E9 = 1,000,000,000 (1Farad = 1bn Nano Farad)
 #define SECONDS_TO_MICROS       1E6   // 1E6 = 1,000,000 (1Second = 1000millis = 1000000 Microseconds)
 #define SAMPLESIZE_1       1
@@ -45,7 +46,7 @@ float Biais_Correction = 0.97;
 const int8_t Output555 = 0;  // Attached to Interrupt 0
 const int8_t Trigger555 = 2;
 
-Timer555Monostable Timer555(Trigger555,Output555,R1,Biais_Correction);
+Timer555Monostable Timer555(Trigger555,Output555,R1,Biais_Correction,CAP_BASELINE);
 
 int LoopCount=0;
 
@@ -103,7 +104,7 @@ void loop() {
   Serial.print(")");
 
   Serial.print("\tLoop:");
-  Serial.print(Timer555.GetLastTotalLoopCount());
+  Serial.print(Timer555.GetLastTotal());
   Serial.print("");
 
   Serial.print("\tFreq:");
@@ -127,7 +128,7 @@ void loop() {
   Serial.print(")");
   
   Serial.print("\tLoop:");
-  Serial.print(Timer555.GetLastTotalLoopCount());
+  Serial.print(Timer555.GetLastTotal());
   Serial.print("");
 
   Serial.print("\tFreq:");

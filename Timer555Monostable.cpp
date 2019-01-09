@@ -1,6 +1,6 @@
 /*
   File:         Timer555Monostable.cpp
-  Version:      0.0.1
+  Version:      0.0.2
   Date:         19-Dec-2018
   Revision:     07-Jan-2019
   Author:       Jerome Drouin
@@ -15,11 +15,10 @@
 	a = 1E9		: 1,000,000,000 nano Farads in 1 Farad (FARADS_TO_NANOFARADS)
 	b = 1E-6 	: 1,000,000 microseconds in one second (SECONDS_TO_MICROS)
   
-  Credits: Library initially inspired by/ derived from "CapacitiveSensor.h" by Paul Bagder & Paul Stoffregen. 
+  Credits: Library initially inspired by/ derived from "CapacitiveSensor.h" by Paul Bagder & Paul Stoffregen. Thanks.
 	- Direct I/O through registers and bitmask (from OneWire library)
-	- Thanks.
 
-  Copyright (c) 2018 Jerome Drouin  All rights reserved.
+  Copyright (c) 2018-2019 Jerome Drouin  All rights reserved.
   
   This program is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -49,8 +48,7 @@
 
 // Constructor /////////////////////////////////////////////////////////////////
 // Function that handles the creation and setup of instances
-
-Timer555Monostable::Timer555Monostable(uint8_t _TriggerPin, uint8_t _OutputPin, uint32_t _R1, float _Biais)
+Timer555Monostable::Timer555Monostable(uint8_t _TriggerPin, uint8_t _OutputPin, uint32_t _R1, float _Biais, float _CapBaseline)
 {
 	// initialize this instance's variables
 	error = 1;
@@ -66,6 +64,7 @@ Timer555Monostable::Timer555Monostable(uint8_t _TriggerPin, uint8_t _OutputPin, 
 	//Objects Parameters
 	Resist_R1 		= _R1;
 	Biais_Correction 	= _Biais;
+	CapBaseline		= _CapBaseline;					// if not used, just enter 0.0
 		
 	// get pin mapping and port for TriggerPin - from PinMode function in Wiring.c 
 	sBit = PIN_TO_BITMASK(_TriggerPin);					// get Trigger pin's ports and bitmask
@@ -82,6 +81,7 @@ Timer555Monostable::Timer555Monostable(uint8_t _TriggerPin, uint8_t _OutputPin, 
 
 }
 
+
 // Public Methods //////////////////////////////////////////////////////////////
 // Functions available in Wiring sketches, this library, and other libraries
 
@@ -91,7 +91,7 @@ float Timer555Monostable::GetCapacitance(uint8_t samples)
 	Period		= 0;
 	Frequency       = 0;
 	Capacitance     = 0;
-	TotalLoopCount	= 0;
+	Total	= 0;
 
 	if (samples == 0) return 0;
 	if (error < 0) return -1;            // bad pin
@@ -102,13 +102,20 @@ float Timer555Monostable::GetCapacitance(uint8_t samples)
 	}
 
 	//Updates other variables
-	TotalLoopCount 	= (long)(TotalLoopCount / samples);
+	Total 		= (uint32_t)(Total / samples);
 	Frequency	= Frequency / samples;
 	Period		= Period / samples;
-	Capacitance	= Capacitance / samples;
+	Capacitance	= (Capacitance / samples) - CapBaseline;
 
 	// Capacitance is the average of all reads
 	return Capacitance;
+
+}
+
+float Timer555Monostable::GetCapBaseline()
+{
+	// Returns the Cap_Baseline Parameters
+	return CapBaseline;
 
 }
 
@@ -139,10 +146,10 @@ uint32_t Timer555Monostable::GetLastPeriod(void)
 	return Period;
 }
 
-uint32_t Timer555Monostable::GetLastTotalLoopCount(void)
+uint32_t Timer555Monostable::GetLastTotal(void)
 {
-	// Returns the last available calculated GetLastTotalLoopCount
-	return TotalLoopCount;
+	// Returns the last available calculated GetLastTotal
+	return Total;
 }
 
 void Timer555Monostable::set_Biais_Correction(float _Biais_Correction)
@@ -173,7 +180,7 @@ long Dur;
  
     StartTimer = micros();		// Start Timer 
     while (DIRECT_READ(rReg, rBit)) {	// while Output pin is HIGH
-        TotalLoopCount++;				
+        Total++;				
     }
     StopTimer   = micros();		// Stop Timer
         	
