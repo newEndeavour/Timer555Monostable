@@ -1,5 +1,9 @@
 Timer555Monostable	KEYWORD1
 Capacitance		KEYWORD2
-CapacitanceRaw		KEYWORD3
+Resistance		KEYWORD3
 Frequency		KEYWORD4
 Period			KEYWORD5
+nanoFarads		KEYWORD6
+picoFarads		KEYWORD7
+Touch			KEYWORD8
+Sensor			KEYWORD9

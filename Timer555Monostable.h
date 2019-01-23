@@ -1,21 +1,32 @@
 /*
   File:         Timer555Monostable.h
-  Version:      0.0.2
+  Version:      0.0.5
   Date:         19-Dec-2018
-  Revision:     07-Jan-2019
-  Author:       Jerome Drouin
+  Revision:     23-Jan-2019
+  Author:       Jerome Drouin (jerome.p.drouin@gmail.com)
+
   https://github.com/newEndeavour/Timer555Monostable
-  Capacitive Meter Library for 'duino / Wiring
-  Capacitance is derived via 555 Timer IC in Monostable mode, and one Resistor R1
-  Capacitance by default is expressed in NanoFarads 
+
+  Capacitive &/or Resistance Meter Library for 'duino / Wiring
+  Capacitance &/or Resistance is derived via 555 Timer IC in Monostable mode, Resistor R1 (Cap Meter mode) 
+  or Capacitance C1 (Res Meter mode). 
+  Capacitance by default is expressed in NanoFarads. 
+  Resistance by default is expressed in Ohms. 
 	
-	C = (a x b x T) / (1.1 x R1) ; with T in seconds and C in nF
+	C = (a / b x T) / (1.1 x R1) ; with T in seconds and C in nF
 	C		: Capacitance in nF
 	R1		: Resistance in Ohms
 	a = 1E9		: 1,000,000,000 nano Farads in 1 Farad (FARADS_TO_NANOFARADS)
-	b = 1E-6 	: 1,000,000 microseconds in one second (SECONDS_TO_MICROS)
+	b = 1E6 	: 1,000,000 microseconds in one second (SECONDS_TO_MICROS)
   
-  Credits: Library initially inspired by/ derived from "CapacitiveSensor.h" by Paul Bagder & Paul Stoffregen. Thanks.
+	R = (c / b x T) / (1.1 x C1) ; with T in seconds and C in pF
+	R		: Resistance in Ohms
+	C1		: Capacitance in pF
+	c = 1E12	: 1,000,000,000,000 pico Farads in 1 Farad (FARADS_TO_PICOFARADS)
+
+  Credits: 
+        - Library initially inspired by/ derived from "CapacitiveSensor.h" by 
+  	  Paul Bagder & Paul Stoffregen. Thanks.
 	- Direct I/O through registers and bitmask (from OneWire library)
 
   Copyright (c) 2018-2019 Jerome Drouin  All rights reserved.
@@ -32,6 +43,19 @@
  
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+
+  Editions:
+  - 0.0.1	: First version
+  - 0.0.2	: Additional member access methods
+  - 0.0.3	: Added DischargePin to allow for a full discharge of the Capacitor. 
+		  In certain high frequency cases, the cap has no time to discharge fully
+		  a new trigger occurs therefore shortening the time to 2/3.Vcc.
+		  Modification of the OneCycle method. 
+  - 0.0.4	: DischargePin is now optional (new constructor)
+  - 0.0.5	: Added Resistance Meter Capabilities from a Reference Capacitor C1
+		  Removed bias_correction factor		  
+		  Constructor modified to handle new Resistance Meter Capabilities
 
   
 */
@@ -223,7 +247,14 @@ void directWriteHigh(volatile IO_REG_TYPE *base, IO_REG_TYPE pin)
 // CONSTANTS /////////////////////////////////////////////////////////////
 #define FARADS_TO_NANOFARADS 	1E9
 #define SECONDS_TO_MICROS 	1E6
-#define LOGNEPERIEN_3		log(3)
+#define FARADS_TO_PICOFARADS 	1E12
+
+#define UNITADJUST_CAP	 	FARADS_TO_NANOFARADS/SECONDS_TO_MICROS
+#define UNITADJUST_RES	 	FARADS_TO_PICOFARADS/SECONDS_TO_MICROS
+
+#define LOGNEPERIEN_3		log(3.0)	//Neperien Logarithm of 3.0
+#define	RISEFALL_ADJUST		1		//Timer Adjustment - Rise&Fall in microsecond to adjust the Timer
+						//in realily this is a variable depending on R1 and C1.
 
 
 // library interface description ////////////////////////////////////////
@@ -232,13 +263,23 @@ class Timer555Monostable
   // user-accessible "public" interface
   public:
   // methods
-	Timer555Monostable(uint8_t _TriggerPin, uint8_t _OutputPin, uint32_t _R1, float _Biais, float _Cap_Baseline);
+	//Cap Meter constructors
+	Timer555Monostable(uint8_t _TriggerPin, uint8_t _OutputPin, uint32_t _R1, float _C1, float _Baseline_Cap, float _Baseline_Res);
+	Timer555Monostable(uint8_t _TriggerPin, uint8_t _OutputPin, uint8_t _DischargePin, uint32_t _R1, float _C1, float _Baseline_Cap, float _Baseline_Res);
+
+	//Res Meter constructors
+	//Timer555Monostable(uint8_t _TriggerPin, uint8_t _OutputPin, float _C1, float _Baseline_Res);
+	//Timer555Monostable(uint8_t _TriggerPin, uint8_t _OutputPin, uint8_t _DischargePin, float _C1, float _Baseline_Res);
 
 	float GetCapacitance(uint8_t samples);
+	float GetResistance(uint8_t samples);
 
-	float GetCapBaseline();
 	float GetLastCapacitance();
-	float GetLastCapacitanceRaw();
+	float GetLastResistance();
+
+	float GetBaseline_Cap();
+	float GetBaseline_Res();
+
 	float GetLastFrequency(void);
 	uint32_t GetLastTotal(void);
 	uint32_t GetLastPeriod(void);
@@ -249,24 +290,33 @@ class Timer555Monostable
   private:
   // variables
 	int error;
-	unsigned long StartTimer;
-	unsigned long StopTimer;
-	uint32_t Resist_R1;
-	uint32_t Period;
-	uint32_t Total;
-	float 	 CapBaseline;
-	float 	 Capacitance;
-	float 	 Frequency;
-	float 	 Biais_Correction;
-	unsigned long AutoCal_Millis;
+	unsigned long StartTimer;	//in uS	
+	unsigned long StopTimer;	//in uS
+	uint32_t Resist_R1;		//in Ohms
+	uint32_t Capacit_C1;		//in pF
+	uint32_t Period;		//in uS
+	uint32_t Total;			//in loop cycles
+	float 	 Capacitance;		//in nF
+	float 	 Baseline_Cap;		//in nF
+	float 	 Resistance;		//in Ohms
+	float 	 Baseline_Res;		//in Ohms
+	float 	 Frequency;		//in Hz	
+	unsigned long AutoCal_Millis;   //in uS
 
 	IO_REG_TYPE sBit;   	// Trigger pin's ports and bitmask
 	volatile IO_REG_TYPE *sReg;
+
 	IO_REG_TYPE rBit;    	// Output pin's ports and bitmask
 	volatile IO_REG_TYPE *rReg;
 
+	int 	 hasDischargePin;
+	IO_REG_TYPE dBit;    	// Discharge pin's ports and bitmask
+	volatile IO_REG_TYPE *dReg;
+
   // methods
-	int OneCycle(void);
+	int 	OneCycle_Capacitance(void);
+	int 	OneCycle_Resistance(void);
+	long 	RunTimer(void);
 };
 
 #endif
