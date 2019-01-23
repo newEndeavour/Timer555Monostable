@@ -1,6 +1,6 @@
 #Timer555Monostable Library#
 
-The library turns a 555 Timer IC connected in Monostable mode (see 555 Timer datasheet) into a Capacitance and/or Resitance meter. 
+The library turns a 555 Timer IC connected in Monostable mode (see 555 Timer datasheet) into a Capacitance and/or Resistance meter. 
 
 The library helps in the design of capacitive sensors which can detect touch or proximity by measuring a variation in an object or sensor Capacitance.
 
