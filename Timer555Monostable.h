@@ -58,7 +58,12 @@
 		  Constructor modified to handle new Resistance Meter Capabilities
   - 0.0.6	: Added a debug enable mode when debug must be done in specific areas of code only
 		  Added Duration as output parameter
-		  changed Period into float from uint_32
+		  Modify way the Capacitance / Resistance is calculated from the Average Period for increased speed
+		  and decommissioned OneCycle_Capacitance to shorten return time (I think you got the picture that speed is
+		  important, so will not mention it again, but let me just say that speed is crucial in this application - There,
+		  I said it again...).
+		  Changed Period into float from uint_32 to avoid casting during calcs (costly).
+
   
 */
 
@@ -251,12 +256,16 @@ void directWriteHigh(volatile IO_REG_TYPE *base, IO_REG_TYPE pin)
 #define SECONDS_TO_MICROS 	1E6
 #define FARADS_TO_PICOFARADS 	1E12
 
-#define UNITADJUST_CAP	 	FARADS_TO_NANOFARADS/SECONDS_TO_MICROS
-#define UNITADJUST_RES	 	FARADS_TO_PICOFARADS/SECONDS_TO_MICROS
+#define UNITADJUST_CAP	 	1E3 		// = FARADS_TO_NANOFARADS/SECONDS_TO_MICROS
+#define UNITADJUST_RES	 	1E6		// = FARADS_TO_PICOFARADS/SECONDS_TO_MICROS
+#define LN_3			1.098612289	// Neperien Logarithm of 3.0
 
-#define LOGNEPERIEN_3		log(3.0)	//Neperien Logarithm of 3.0
+#define UCAP_LN_3		910.2392264	// UNITADJUST_CAP / LN_3
+#define URES_LN_3		910239.2264	// UNITADJUST_RES / LN_3
+
 #define	RISEFALL_ADJUST		1		//Timer Adjustment - Rise&Fall in microsecond to adjust the Timer
-						//in realily this is a variable depending on R1 and C1.
+						//in reality this is a variable depending on R1 and C1...
+
 
 
 // library interface description ////////////////////////////////////////
@@ -285,6 +294,17 @@ class Timer555Monostable
 	float 		GetLastPeriod(void);
 	uint32_t 	GetLastDuration(void);
 
+	/*
+	uint32_t 	GetLastDuration1(void);
+	uint32_t 	GetLastDuration2(void);
+	uint32_t 	GetLastDuration3(void);
+	uint32_t 	GetLastDuration4(void);
+	uint32_t 	GetLastDuration5(void);
+	uint32_t 	GetLastDuration6(void);
+	uint32_t 	GetLastDuration7(void);
+	uint32_t 	GetLastDuration8(void);
+	*/
+
 	void  		EnableDebug();
 	void  		DisableDebug();
 
@@ -295,18 +315,39 @@ class Timer555Monostable
 	int error;
 	int en_debug;
 
+	uint8_t	TriggerPin;		//Trigger-Pulse Pin: connect to Pin2 of 555 Timer
+	uint8_t	OutputPin;		//Output-Signal Pin: connect to Pin3 of 555 Timer
+	uint8_t	DischargePin;		//
+
+	/*
+	uint32_t Duration1;		//in uS
+	uint32_t Duration2;		//in uS
+	uint32_t Duration3;		//in uS
+	uint32_t Duration4;		//in uS
+	uint32_t Duration5;		//in uS
+	uint32_t Duration6;		//in uS
+	uint32_t Duration7;		//in uS
+	uint32_t Duration8;		//in uS
+	*/
+
 	unsigned long StartTimer;	//in uS	
 	unsigned long StopTimer;	//in uS
+	unsigned long Duration;		//in uS
+
 	uint32_t Resist_R1;		//in Ohms
 	uint32_t Capacit_C1;		//in pF
-	float	 Period;		//in uS
-	uint32_t Duration;		//in uS
 	uint32_t Total;			//in loop cycles
-	float 	 Capacitance;		//in nF
-	float 	 Baseline_Cap;		//in nF
-	float 	 Resistance;		//in Ohms
-	float 	 Baseline_Res;		//in Ohms
+
+	float	 Period;		//in uS
 	float 	 Frequency;		//in Hz
+	float 	 Capacitance;		//in nF
+	float 	 Resistance;		//in Ohms
+	float 	 Baseline_Cap;		//in nF
+	float 	 Baseline_Res;		//in Ohms
+
+	float 	 UnitLn3_R1;		//pre-Calculated variable for Capacitance
+	float 	 UnitLn3_C1;		//pre-Calculated variable for Resistance
+
 	
 	IO_REG_TYPE sBit;   	// Trigger pin's ports and bitmask
 	volatile IO_REG_TYPE *sReg;
@@ -321,7 +362,9 @@ class Timer555Monostable
   // methods
 	int 	OneCycle_Capacitance(void);
 	int 	OneCycle_Resistance(void);
-	long 	RunTimer(void);
+	unsigned long RunTimer(void);
+	void 	ResetErrors(void);
+
 };
 
 #endif
