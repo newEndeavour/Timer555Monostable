@@ -1,8 +1,8 @@
 /*
   File:         Timer555Monostable.cpp
-  Version:      0.0.5
+  Version:      0.0.6
   Date:         19-Dec-2018
-  Revision:     23-Jan-2019
+  Revision:     16-Feb-2019
   Author:       Jerome Drouin (jerome.p.drouin@gmail.com)
 
   Editions:	Please go to Timer555Monostable.h for Edition Notes.
@@ -60,27 +60,27 @@
 
 // Constructor /////////////////////////////////////////////////////////////////
 // Function that handles the creation and setup of instances
-Timer555Monostable::Timer555Monostable(uint8_t _TriggerPin, uint8_t _OutputPin, uint32_t _R1, float _C1, float _Baseline_Cap, float _Baseline_Res)
+Timer555Monostable::Timer555Monostable(uint8_t _TriggerPin, uint8_t _OutputPin, uint32_t _R1, float _C1)
 {
 	// initialize this instance's variables
 	error = 1;
+
+	//Debug disabled by default
+	en_debug = 0;
 
 	#ifdef NUM_DIGITAL_PINS
 	if (_TriggerPin >= NUM_DIGITAL_PINS) error = -1;
 	if (_OutputPin >= NUM_DIGITAL_PINS) error = -1;
 	#endif
 
-	//Auto Calibration
-	AutoCal_Millis 		= 20000;
-
 	//Objects Parameters
 	Resist_R1 		= _R1;
 	Capacitance     	= 0;
-	Baseline_Cap		= _Baseline_Cap;			// if not in use, input 0.0
+	Baseline_Cap		= 0;					// if not in use, input 0.0
 
 	Capacit_C1		= _C1;					// if not in use, input 0.0
 	Resistance      	= 0;
-	Baseline_Res		= _Baseline_Res;			// if not in use, input 0.0
+	Baseline_Res		= 0;					// if not in use, input 0.0
 		
 	// get pin mapping and port for TriggerPin - from PinMode function in Wiring.c 
 	sBit = PIN_TO_BITMASK(_TriggerPin);				// get Trigger pin's ports and bitmask
@@ -90,7 +90,7 @@ Timer555Monostable::Timer555Monostable(uint8_t _TriggerPin, uint8_t _OutputPin, 
 	rBit = PIN_TO_BITMASK(_OutputPin);				// get OutPut pin's ports and bitmask
 	rReg = PIN_TO_BASEREG(_OutputPin);				// get pointer to output register
 
-	hasDischargePin = 0;
+	ObjecthasDischargePin 	= 0;					// Object Setup without discharge Pin
 
 	//Set Pins before start 
 	DIRECT_MODE_OUTPUT(sReg, sBit); 				// TriggerPin to OUTPUT
@@ -100,18 +100,103 @@ Timer555Monostable::Timer555Monostable(uint8_t _TriggerPin, uint8_t _OutputPin, 
 }
 
 
-Timer555Monostable::Timer555Monostable(uint8_t _TriggerPin, uint8_t _OutputPin, uint8_t _DischargePin, uint32_t _R1, float _C1, float _Baseline_Cap, float _Baseline_Res)
+Timer555Monostable::Timer555Monostable(uint8_t _TriggerPin, uint8_t _OutputPin, uint32_t _R1, float _C1, float _Baseline_Cap, float _Baseline_Res)
 {
 	// initialize this instance's variables
 	error = 1;
+
+	//Debug disabled by default
+	en_debug = 0;
 
 	#ifdef NUM_DIGITAL_PINS
 	if (_TriggerPin >= NUM_DIGITAL_PINS) error = -1;
 	if (_OutputPin >= NUM_DIGITAL_PINS) error = -1;
 	#endif
 
-	//Auto Calibration
-	AutoCal_Millis 		= 20000;
+	//Objects Parameters
+	Resist_R1 		= _R1;
+	Capacitance     	= 0;
+	Baseline_Cap		= _Baseline_Cap;			// if not in use, input 0.0
+
+	Capacit_C1		= _C1;					// if not in use, input 0.0
+	Resistance      	= 0;
+	Baseline_Res		= _Baseline_Res;			// if not in use, input 0.0
+		
+	// get pin mapping and port for TriggerPin - from PinMode function in Wiring.c 
+	sBit = PIN_TO_BITMASK(_TriggerPin);				// get Trigger pin's ports and bitmask
+	sReg = PIN_TO_BASEREG(_TriggerPin);				// get pointer to output register
+
+	// get pin mapping and port for OutPutPin - from digital pin functions in Wiring.c
+	rBit = PIN_TO_BITMASK(_OutputPin);				// get OutPut pin's ports and bitmask
+	rReg = PIN_TO_BASEREG(_OutputPin);				// get pointer to output register
+
+	ObjecthasDischargePin 	= 0;					// Object Setup without discharge Pin
+
+	//Set Pins before start 
+	DIRECT_MODE_OUTPUT(sReg, sBit); 				// TriggerPin to OUTPUT
+	DIRECT_MODE_INPUT(rReg, rBit); 					// OutputPin to INPUT
+    	DIRECT_WRITE_HIGH(sReg, sBit);					// TriggerPin high -> No unwanted Trigger pulse
+
+}
+
+
+Timer555Monostable::Timer555Monostable(uint8_t _TriggerPin, uint8_t _OutputPin, uint8_t _DischargePin, uint32_t _R1, float _C1)
+{
+	// initialize this instance's variables
+	error = 1;
+
+	//Debug disabled by default
+	en_debug = 0;
+
+	#ifdef NUM_DIGITAL_PINS
+	if (_TriggerPin >= NUM_DIGITAL_PINS) error = -1;
+	if (_OutputPin >= NUM_DIGITAL_PINS) error = -1;
+	#endif
+
+	//Objects Parameters
+	Resist_R1 		= _R1;
+	Capacitance     	= 0;
+	Baseline_Cap		= 0.0;					// if not in use, input 0.0
+
+	Capacit_C1		= _C1;					// if not in use, input 0.0
+	Resistance      	= 0;
+	Baseline_Res		= 0.0;					// if not in use, input 0.0
+		
+	// get pin mapping and port for TriggerPin - from PinMode function in Wiring.c 
+	sBit = PIN_TO_BITMASK(_TriggerPin);				// get Trigger pin's ports and bitmask
+	sReg = PIN_TO_BASEREG(_TriggerPin);				// get pointer to output register
+
+	// get pin mapping and port for OutPutPin - from digital pin functions in Wiring.c
+	rBit = PIN_TO_BITMASK(_OutputPin);				// get OutPut pin's ports and bitmask
+	rReg = PIN_TO_BASEREG(_OutputPin);				// get pointer to output register
+
+	//Set Pins before start 
+	DIRECT_MODE_OUTPUT(sReg, sBit); 				// TriggerPin to OUTPUT
+	DIRECT_MODE_INPUT(rReg, rBit); 					// OutputPin to INPUT
+    	DIRECT_WRITE_HIGH(sReg, sBit);					// TriggerPin high -> No unwanted Trigger pulse
+
+	ObjecthasDischargePin 	= 1;					// Object Setup WITH discharge Pin
+
+	// get pin mapping and port for DischargePin - from digital pin functions in Wiring.c
+	dBit = PIN_TO_BITMASK(_DischargePin);				// get Discharge pin's ports and bitmask
+	dReg = PIN_TO_BASEREG(_DischargePin);				// get pointer to output register
+	DIRECT_MODE_INPUT(dReg, dBit); 					// DischargePin to INPUT -> Cap. charging possible
+
+}
+
+
+Timer555Monostable::Timer555Monostable(uint8_t _TriggerPin, uint8_t _OutputPin, uint8_t _DischargePin, uint32_t _R1, float _C1, float _Baseline_Cap, float _Baseline_Res)
+{
+	// initialize this instance's variables
+	error = 1;
+
+	//Debug disabled by default
+	en_debug = 0;
+
+	#ifdef NUM_DIGITAL_PINS
+	if (_TriggerPin >= NUM_DIGITAL_PINS) error = -1;
+	if (_OutputPin >= NUM_DIGITAL_PINS) error = -1;
+	#endif
 
 	//Objects Parameters
 	Resist_R1 		= _R1;
@@ -135,7 +220,7 @@ Timer555Monostable::Timer555Monostable(uint8_t _TriggerPin, uint8_t _OutputPin, 
 	DIRECT_MODE_INPUT(rReg, rBit); 					// OutputPin to INPUT
     	DIRECT_WRITE_HIGH(sReg, sBit);					// TriggerPin high -> No unwanted Trigger pulse
 
-	hasDischargePin = 1;
+	ObjecthasDischargePin 	= 1;					// Object Setup WITH discharge Pin
 
 	// get pin mapping and port for DischargePin - from digital pin functions in Wiring.c
 	dBit = PIN_TO_BITMASK(_DischargePin);				// get Discharge pin's ports and bitmask
@@ -153,6 +238,7 @@ float Timer555Monostable::GetCapacitance(uint8_t samples)
 
 	// Set results to zero before start of read
 	Period		= 0;
+	Duration	= 0;
 	Frequency       = 0;
 	Capacitance     = 0;
 	Total	= 0;
@@ -167,8 +253,8 @@ float Timer555Monostable::GetCapacitance(uint8_t samples)
 
 	//Updates other variables
 	Total 		= (uint32_t)(Total / samples);
-	Frequency	= Frequency / samples;
 	Period		= Period / samples;
+	Frequency   	= 1 / (Period/SECONDS_TO_MICROS);
 	Capacitance	= (Capacitance / samples) - Baseline_Cap;
 
 	// Capacitance is the average of all reads
@@ -182,6 +268,7 @@ float Timer555Monostable::GetResistance(uint8_t samples)
 
 	// Set results to zero before start of read
 	Period		= 0;
+	Duration	= 0;
 	Frequency       = 0;
 	Resistance      = 0;
 	Total	= 0;
@@ -196,8 +283,8 @@ float Timer555Monostable::GetResistance(uint8_t samples)
 
 	//Updates other variables
 	Total 		= (uint32_t)(Total / samples);
-	Frequency	= Frequency / samples;
 	Period		= Period / samples;
+	Frequency   	= 1 / (Period/SECONDS_TO_MICROS);
 	Resistance	= (Resistance / samples) - Baseline_Res;
 
 	// Resistance is the average of all reads
@@ -241,10 +328,16 @@ float Timer555Monostable::GetLastFrequency(void)
 }
 
 
-uint32_t Timer555Monostable::GetLastPeriod(void)
+float Timer555Monostable::GetLastPeriod(void)
 {
 	// Returns the last available calculated Period in microseconds
 	return Period;
+}
+
+uint32_t Timer555Monostable::GetLastDuration(void)
+{
+	// Returns the last available calculated Duration in microseconds
+	return Duration;
 }
 
 uint32_t Timer555Monostable::GetLastTotal(void)
@@ -253,12 +346,15 @@ uint32_t Timer555Monostable::GetLastTotal(void)
 	return Total;
 }
 
-
-void Timer555Monostable::set_Autocal_Millis(unsigned long _AutoCal_Millis)
+void  Timer555Monostable::EnableDebug(void)
 {
-	AutoCal_Millis = _AutoCal_Millis;
+	en_debug = 1;
 }
 
+void  Timer555Monostable::DisableDebug(void)
+{
+	en_debug = 0;
+}
 
 
 // Private Methods /////////////////////////////////////////////////////////////
@@ -266,7 +362,7 @@ void Timer555Monostable::set_Autocal_Millis(unsigned long _AutoCal_Millis)
 long Timer555Monostable::RunTimer(void) {
 
     noInterrupts();
-	if (hasDischargePin) {
+	if (ObjecthasDischargePin) {
 		//---- Discharging Capacitor --------
 		DIRECT_MODE_INPUT(dReg, dBit);	// DischargePin to INPUT (pullups are off)
 		DIRECT_MODE_OUTPUT(dReg, dBit); // DischargePin to OUTPUT
@@ -299,8 +395,8 @@ int Timer555Monostable::OneCycle_Capacitance(void) {
 long Dur;    
 
     Dur			 = RunTimer();
-    Period		+= Dur;
-    Frequency   	+= 1 / (Dur/SECONDS_TO_MICROS);
+    Duration		+= Dur;
+    Period		+= (float)Dur;
     Capacitance 	+= UNITADJUST_CAP * Dur / (LOGNEPERIEN_3 * Resist_R1);
     
     //Return
@@ -313,8 +409,8 @@ int Timer555Monostable::OneCycle_Resistance(void) {
 long Dur;    
 
     Dur			 = RunTimer();
-    Period		+= Dur;
-    Frequency   	+= 1 / (Dur/SECONDS_TO_MICROS);
+    Duration		+= Dur;
+    Period		+= (float)Dur;
     Resistance	 	+= UNITADJUST_RES * Dur / (LOGNEPERIEN_3 * Capacit_C1);
     
     //Return

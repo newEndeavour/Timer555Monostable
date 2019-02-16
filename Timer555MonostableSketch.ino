@@ -1,8 +1,8 @@
 /*
   File:         Timer555Monostable
-  Version:      0.0.5
+  Version:      0.0.6
   Date:         19-Dec-2018
-  Revision:     23-Jan-2019
+  Revision:     16-Feb-2019
   Author:       Jerome Drouin
   
   https://github.com/newEndeavour/Timer555Monostable
@@ -51,8 +51,8 @@
 #define RES_BASELINE            100   // Baseline for Empty Resistance in Ohms/Enter 0.0 if not in use
 #define SAMPLESIZE_1       2          // 
 #define SAMPLESIZE_2      10          //
-#define R1    205000                  // in Ohms  : Reference Resistance in Capacitor Meter Mode
-#define C1    1044.0                  // in pF    : Reference Capacitor in Resistance Meter Mode
+#define R1    240000                  // in Ohms  : Reference Resistance in Capacitor Meter Mode
+#define C1    80.0                    // in pF    : Reference Capacitor in Resistance Meter Mode
 
 //Pins
 const int8_t Output555    = 0;        // Connected to 555Timer IC Pin 3 (Monostable)
@@ -79,10 +79,7 @@ void loop() {
   LoopCount++;
 
   float Cap1 = Timer555.GetCapacitance(SAMPLESIZE_1);
-  float Cap2 = Timer555.GetCapacitance(SAMPLESIZE_2);
-
   float Res1 = Timer555.GetResistance(SAMPLESIZE_1);
-  float Res2 = Timer555.GetResistance(SAMPLESIZE_2);
 
   //Default unit = nF
   int display_factor = 1;
@@ -128,7 +125,14 @@ void loop() {
   Serial.print(Timer555.GetLastPeriod());
   Serial.print("us");
 
+  Serial.print("\tDuration\t:");
+  Serial.print(Timer555.GetLastDuration());
+  Serial.print("us");
+
   //SAMPLE SIZE 2
+  float Cap2 = Timer555.GetCapacitance(SAMPLESIZE_2);
+  float Res2 = Timer555.GetResistance(SAMPLESIZE_2);
+
   Serial.print("\n\t Cap[");
   Serial.print(SAMPLESIZE_2);
   Serial.print("]\t:");
@@ -149,6 +153,10 @@ void loop() {
 
   Serial.print("\tPeriod\t:");
   Serial.print(Timer555.GetLastPeriod());
+  Serial.print("us");
+
+  Serial.print("\tDuration\t:");
+  Serial.print(Timer555.GetLastDuration());
   Serial.print("us");
 
   Serial.print("\n");

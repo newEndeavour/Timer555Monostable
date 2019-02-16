@@ -1,8 +1,8 @@
 /*
   File:         Timer555Monostable.h
-  Version:      0.0.5
+  Version:      0.0.6
   Date:         19-Dec-2018
-  Revision:     23-Jan-2019
+  Revision:     16-Feb-2019
   Author:       Jerome Drouin (jerome.p.drouin@gmail.com)
 
   https://github.com/newEndeavour/Timer555Monostable
@@ -56,7 +56,9 @@
   - 0.0.5	: Added Resistance Meter Capabilities from a Reference Capacitor C1
 		  Removed bias_correction factor		  
 		  Constructor modified to handle new Resistance Meter Capabilities
-
+  - 0.0.6	: Added a debug enable mode when debug must be done in specific areas of code only
+		  Added Duration as output parameter
+		  changed Period into float from uint_32
   
 */
 
@@ -263,55 +265,58 @@ class Timer555Monostable
   // user-accessible "public" interface
   public:
   // methods
-	//Cap Meter constructors
+	Timer555Monostable(uint8_t _TriggerPin, uint8_t _OutputPin, uint32_t _R1, float _C1);
 	Timer555Monostable(uint8_t _TriggerPin, uint8_t _OutputPin, uint32_t _R1, float _C1, float _Baseline_Cap, float _Baseline_Res);
+
+	Timer555Monostable(uint8_t _TriggerPin, uint8_t _OutputPin, uint8_t _DischargePin, uint32_t _R1, float _C1);
 	Timer555Monostable(uint8_t _TriggerPin, uint8_t _OutputPin, uint8_t _DischargePin, uint32_t _R1, float _C1, float _Baseline_Cap, float _Baseline_Res);
 
-	//Res Meter constructors
-	//Timer555Monostable(uint8_t _TriggerPin, uint8_t _OutputPin, float _C1, float _Baseline_Res);
-	//Timer555Monostable(uint8_t _TriggerPin, uint8_t _OutputPin, uint8_t _DischargePin, float _C1, float _Baseline_Res);
+	float 		GetCapacitance(uint8_t samples);
+	float 		GetResistance(uint8_t samples);
 
-	float GetCapacitance(uint8_t samples);
-	float GetResistance(uint8_t samples);
+	float 		GetLastCapacitance();
+	float 		GetLastResistance();
 
-	float GetLastCapacitance();
-	float GetLastResistance();
+	float 		GetBaseline_Cap();
+	float 		GetBaseline_Res();
 
-	float GetBaseline_Cap();
-	float GetBaseline_Res();
+	float 		GetLastFrequency(void);
+	uint32_t 	GetLastTotal(void);
+	float 		GetLastPeriod(void);
+	uint32_t 	GetLastDuration(void);
 
-	float GetLastFrequency(void);
-	uint32_t GetLastTotal(void);
-	uint32_t GetLastPeriod(void);
-	void set_Biais_Correction(float _Biais_Correction);
-	void set_Autocal_Millis(unsigned long _AutoCal_Millis);
+	void  		EnableDebug();
+	void  		DisableDebug();
+
 
   // library-accessible "private" interface
   private:
   // variables
 	int error;
+	int en_debug;
+
 	unsigned long StartTimer;	//in uS	
 	unsigned long StopTimer;	//in uS
 	uint32_t Resist_R1;		//in Ohms
 	uint32_t Capacit_C1;		//in pF
-	uint32_t Period;		//in uS
+	float	 Period;		//in uS
+	uint32_t Duration;		//in uS
 	uint32_t Total;			//in loop cycles
 	float 	 Capacitance;		//in nF
 	float 	 Baseline_Cap;		//in nF
 	float 	 Resistance;		//in Ohms
 	float 	 Baseline_Res;		//in Ohms
-	float 	 Frequency;		//in Hz	
-	unsigned long AutoCal_Millis;   //in uS
-
+	float 	 Frequency;		//in Hz
+	
 	IO_REG_TYPE sBit;   	// Trigger pin's ports and bitmask
 	volatile IO_REG_TYPE *sReg;
 
 	IO_REG_TYPE rBit;    	// Output pin's ports and bitmask
 	volatile IO_REG_TYPE *rReg;
 
-	int 	 hasDischargePin;
 	IO_REG_TYPE dBit;    	// Discharge pin's ports and bitmask
 	volatile IO_REG_TYPE *dReg;
+	int 	 ObjecthasDischargePin;
 
   // methods
 	int 	OneCycle_Capacitance(void);
