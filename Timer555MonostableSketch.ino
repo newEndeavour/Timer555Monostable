@@ -51,8 +51,9 @@
 #define RES_BASELINE            100   // Baseline for Empty Resistance in Ohms/Enter 0.0 if not in use
 #define SAMPLESIZE_1       2          // 
 #define SAMPLESIZE_2      10          //
+#define SAMPLESIZE_3      50          //
 #define R1    240000                  // in Ohms  : Reference Resistance in Capacitor Meter Mode
-#define C1    80.0                    // in pF    : Reference Capacitor in Resistance Meter Mode
+#define C1     150.0                  // in pF    : Reference Capacitor in Resistance Meter Mode
 
 //Pins
 const int8_t Output555    = 0;        // Connected to 555Timer IC Pin 3 (Monostable)
@@ -78,88 +79,110 @@ void setup() {
 void loop() {
   LoopCount++;
 
-  float Cap1 = Timer555.GetCapacitance(SAMPLESIZE_1);
-  float Res1 = Timer555.GetResistance(SAMPLESIZE_1);
+  float Cap = Timer555.GetCapacitance(SAMPLESIZE_1);
+  float Res = Timer555.GetResistance(SAMPLESIZE_1);
 
   //Default unit = nF
   int display_factor = 1;
-  String display_unit_Cap = "nF";
-  String display_unit_Res = "Ohms";
+  String display_unit_Cap = " nF";
+  String display_unit_Res = " Ohms";
   
-  if (Cap1<1) {
+  if (Cap<1) {
     display_factor = 1000;
-    display_unit_Cap = "pF";
+    display_unit_Cap = " pF";
   }
-  if (Cap1>1000) {
+  if (Cap>1000) {
     display_factor = 1/1000;
-    display_unit_Cap = "uF";
+    display_unit_Cap = " uF";
   }
-  if (Cap1>1000000) {
+  if (Cap>1000000) {
     display_factor = 1/1000000;
-    display_unit_Cap = "mF";
+    display_unit_Cap = " mF";
   }
 
   Serial.print(LoopCount);
   Serial.print(") ");
   
   //SAMPLE SIZE 1
-  Serial.print("\t Cap[");
+  Serial.print("\tSamples:");
   Serial.print(SAMPLESIZE_1);
-  Serial.print("]\t\t:");
-  Serial.print(Cap1*display_factor,3);
+
+  Serial.print("\tCap:");
+  Serial.print(Cap * display_factor, 3);
   Serial.print(display_unit_Cap);
   
-  Serial.print("\t Res\t:");
-  Serial.print(Res1,1);
+  Serial.print("\tRes:");
+  Serial.print(Res , 1);
   Serial.print(display_unit_Res);
 
-  Serial.print("\tLoop\t:");
-  Serial.print(Timer555.GetLastTotal());
-  Serial.print("");
+  Serial.print("\tDur:");
+  Serial.print(Timer555.GetDuration());
+  Serial.print(" us");
 
-  Serial.print("\tFreq\t:");
-  Serial.print(Timer555.GetLastFrequency(),3);
-  Serial.print("Hz");
+  Serial.print("\tPer:");
+  Serial.print(Timer555.GetAvgPeriod());
+  Serial.print(" us");
 
-  Serial.print("\tPeriod\t:");
-  Serial.print(Timer555.GetLastPeriod());
-  Serial.print("us");
-
-  Serial.print("\tDuration\t:");
-  Serial.print(Timer555.GetLastDuration());
-  Serial.print("us");
+  Serial.print("\tFreq:");
+  Serial.print(Timer555.GetFrequency(), 3);
+  Serial.print(" Hz");
 
   //SAMPLE SIZE 2
-  float Cap2 = Timer555.GetCapacitance(SAMPLESIZE_2);
-  float Res2 = Timer555.GetResistance(SAMPLESIZE_2);
-
-  Serial.print("\n\t Cap[");
-  Serial.print(SAMPLESIZE_2);
-  Serial.print("]\t:");
-  Serial.print(Cap2*display_factor,3);
-  Serial.print(display_unit_Cap);
-  
-  Serial.print("\t Res2\t:");
-  Serial.print(Res2,1);
-  Serial.print(display_unit_Res);
-  
-  Serial.print("\tLoop\t:");
-  Serial.print(Timer555.GetLastTotal());
-  Serial.print("");
-
-  Serial.print("\tFreq\t:");
-  Serial.print(Timer555.GetLastFrequency(),3);
-  Serial.print("Hz");
-
-  Serial.print("\tPeriod\t:");
-  Serial.print(Timer555.GetLastPeriod());
-  Serial.print("us");
-
-  Serial.print("\tDuration\t:");
-  Serial.print(Timer555.GetLastDuration());
-  Serial.print("us");
+  Cap = Timer555.GetCapacitance(SAMPLESIZE_2);
+  Res = Timer555.GetResistance(SAMPLESIZE_2);
 
   Serial.print("\n");
-  delay(TRIGGER_FREQ_mS);
+  Serial.print("\tSamples:");
+  Serial.print(SAMPLESIZE_2);
+
+  Serial.print("\tCap:");
+  Serial.print(Cap * display_factor, 3);
+  Serial.print(display_unit_Cap);
   
+  Serial.print("\tRes:");
+  Serial.print(Res , 1);
+  Serial.print(display_unit_Res);
+
+  Serial.print("\tDur:");
+  Serial.print(Timer555.GetDuration());
+  Serial.print(" us");
+
+  Serial.print("\tPer:");
+  Serial.print(Timer555.GetAvgPeriod());
+  Serial.print(" us");
+
+  Serial.print("\tFreq:");
+  Serial.print(Timer555.GetFrequency(), 3);
+  Serial.print(" Hz");
+
+  //SAMPLE SIZE 3
+  Cap = Timer555.GetCapacitance(SAMPLESIZE_3);
+  Res = Timer555.GetResistance(SAMPLESIZE_3);
+
+  Serial.print("\n");
+  Serial.print("\tSamples:");
+  Serial.print(SAMPLESIZE_3);
+
+  Serial.print("\tCap:");
+  Serial.print(Cap * display_factor, 3);
+  Serial.print(display_unit_Cap);
+  
+  Serial.print("\tRes:");
+  Serial.print(Res , 1);
+  Serial.print(display_unit_Res);
+
+  Serial.print("\tDur:");
+  Serial.print(Timer555.GetDuration());
+  Serial.print(" us");
+
+  Serial.print("\tPer:");
+  Serial.print(Timer555.GetAvgPeriod());
+  Serial.print(" us");
+
+  Serial.print("\tFreq:");
+  Serial.print(Timer555.GetFrequency(), 3);
+  Serial.print(" Hz");
+  
+  Serial.print("\n\n");
+  delay(TRIGGER_FREQ_mS);
 }
