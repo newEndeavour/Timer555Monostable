@@ -251,7 +251,14 @@ void directWriteHigh(volatile IO_REG_TYPE *base, IO_REG_TYPE pin)
 #endif
 
 
-// CONSTANTS /////////////////////////////////////////////////////////////
+// DEFINES /////////////////////////////////////////////////////////////
+#define VER_Timer555Monostable	"0.0.6"		// 
+#define REL_Timer555Monostable	"16Feb2019"	//
+
+//#define AVGPERIOD_AS_INT	0		// AvgPeriod = Duration / Sample returns an int (without decimals)
+#define AVGPERIOD_AS_FLOAT	1		// AvgPeriod = Duration / Sample returns a float (with decimals)
+
+
 #define FARADS_TO_NANOFARADS 	1E9
 #define SECONDS_TO_MICROS 	1E6
 #define FARADS_TO_PICOFARADS 	1E12
@@ -283,30 +290,34 @@ class Timer555Monostable
 	float 		GetCapacitance(uint8_t samples);
 	float 		GetResistance(uint8_t samples);
 
-	float 		GetLastCapacitance();
-	float 		GetLastResistance();
+	float 		GetCapacitance();
+	float 		GetResistance();
 
 	float 		GetBaseline_Cap();
 	float 		GetBaseline_Res();
 
-	float 		GetLastFrequency(void);
-	uint32_t 	GetLastTotal(void);
-	float 		GetLastPeriod(void);
-	uint32_t 	GetLastDuration(void);
+	float 		GetFrequency(void);
+	float 		GetAvgPeriod(void);
+	uint32_t 	GetTotal(void);
+	uint32_t 	GetDuration(void);
 
 	/*
-	uint32_t 	GetLastDuration1(void);
-	uint32_t 	GetLastDuration2(void);
-	uint32_t 	GetLastDuration3(void);
-	uint32_t 	GetLastDuration4(void);
-	uint32_t 	GetLastDuration5(void);
-	uint32_t 	GetLastDuration6(void);
-	uint32_t 	GetLastDuration7(void);
-	uint32_t 	GetLastDuration8(void);
+	uint32_t 	GetDuration1(void);
+	uint32_t 	GetDuration2(void);
+	uint32_t 	GetDuration3(void);
+	uint32_t 	GetDuration4(void);
+	uint32_t 	GetDuration5(void);
+	uint32_t 	GetDuration6(void);
+	uint32_t 	GetDuration7(void);
+	uint32_t 	GetDuration8(void);
 	*/
 
 	void  		EnableDebug();
 	void  		DisableDebug();
+	int 		GetAvgPeriodType(void);
+
+	String 		GetVersion();
+	String 		GetReleaseDate();
 
 
   // library-accessible "private" interface
@@ -338,7 +349,7 @@ class Timer555Monostable
 	uint32_t Capacit_C1;		//in pF
 	uint32_t Total;			//in loop cycles
 
-	float	 Period;		//in uS
+	float	 AvgPeriod;		//in uS
 	float 	 Frequency;		//in Hz
 	float 	 Capacitance;		//in nF
 	float 	 Resistance;		//in Ohms

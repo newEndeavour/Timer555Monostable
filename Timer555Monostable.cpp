@@ -241,57 +241,76 @@ Timer555Monostable::Timer555Monostable(uint8_t _TriggerPin, uint8_t _OutputPin, 
 
 // Public Methods //////////////////////////////////////////////////////////////
 // Functions available in Wiring sketches, this library, and other libraries
+
+// Returns the Version
+String Timer555Monostable::GetVersion()
+{
+	return VER_Timer555Monostable;
+}
+
+//Returns the Last Version Date
+String Timer555Monostable::GetReleaseDate()
+{
+	return REL_Timer555Monostable;
+}
+
+// Returns the Baseline_Cap Parameters
 float Timer555Monostable::GetBaseline_Cap()
 {
-	// Returns the Baseline_Cap Parameters
 	return Baseline_Cap;
-
 }
 
+// Returns the Baseline_Res Parameters
 float Timer555Monostable::GetBaseline_Res()
 {
-	// Returns the Baseline_Res Parameters
 	return Baseline_Res;
-
 }
 
-float Timer555Monostable::GetLastCapacitance()
+// Returns the last available calculated Capacitance
+float Timer555Monostable::GetCapacitance()
 {
-	// Returns the last available calculated Capacitance
 	return Capacitance;
-
 }
 
-float Timer555Monostable::GetLastResistance()
+// Returns the last available calculated Resistance
+float Timer555Monostable::GetResistance()
 {
-	// Returns the last available calculated Resistance
 	return Resistance;
-
 }
 
-float Timer555Monostable::GetLastFrequency(void)
+// Returns the last available calculated frequency
+float Timer555Monostable::GetFrequency(void)
 {
-	// Returns the last available calculated frequency
 	return Frequency;
 }
 
-
-float Timer555Monostable::GetLastPeriod(void)
+// Returns the last available calculated Average AvgPeriod in microseconds
+float Timer555Monostable::GetAvgPeriod(void)
 {
-	// Returns the last available calculated Period in microseconds
-	return Period;
+	return AvgPeriod;
 }
 
-uint32_t Timer555Monostable::GetLastDuration(void)
+// Returns the AvgPeriod Type 
+int Timer555Monostable::GetAvgPeriodType(void)
 {
-	// Returns the last available calculated Duration in microseconds
+	#if defined(AVGPERIOD_AS_FLOAT)
+		return AVGPERIOD_AS_FLOAT;
+	#endif
+	#if defined(AVGPERIOD_AS_INT)
+		return AVGPERIOD_AS_INT;
+	#endif
+}
+
+// Returns the last available calculated Duration in microseconds
+uint32_t Timer555Monostable::GetDuration(void)
+{
 	return Duration;
 }
 
 
-uint32_t Timer555Monostable::GetLastTotal(void)
+// Returns the last available calculated Total
+uint32_t Timer555Monostable::GetTotal(void)
 {
-	// Returns the last available calculated GetLastTotal
 	return Total;
 }
 
@@ -316,35 +335,35 @@ void  Timer555Monostable::DisableDebug(void)
 //
 /*
 
-uint32_t Timer555Monostable::GetLastDuration1(void)
+uint32_t Timer555Monostable::GetDuration1(void)
 {
 	return Duration1;
 }
-uint32_t Timer555Monostable::GetLastDuration2(void)
+uint32_t Timer555Monostable::GetDuration2(void)
 {
 	return Duration2;
 }
-uint32_t Timer555Monostable::GetLastDuration3(void)
+uint32_t Timer555Monostable::GetDuration3(void)
 {
 	return Duration3;
 }
-uint32_t Timer555Monostable::GetLastDuration4(void)
+uint32_t Timer555Monostable::GetDuration4(void)
 {
 	return Duration4;
 }
-uint32_t Timer555Monostable::GetLastDuration5(void)
+uint32_t Timer555Monostable::GetDuration5(void)
 {
 	return Duration5;
 }
-uint32_t Timer555Monostable::GetLastDuration6(void)
+uint32_t Timer555Monostable::GetDuration6(void)
 {
 	return Duration6;
 }
-uint32_t Timer555Monostable::GetLastDuration7(void)
+uint32_t Timer555Monostable::GetDuration7(void)
 {
 	return Duration7;
 }
-uint32_t Timer555Monostable::GetLastDuration8(void)
+uint32_t Timer555Monostable::GetDuration8(void)
 {
 	return Duration8;
 }
@@ -374,9 +393,14 @@ float Timer555Monostable::GetCapacitance(uint8_t samples)
 	}
 
 	// Update variables
-	Period		= Duration / samples;			// Average Period
-	Frequency   	= 1 / (Period/SECONDS_TO_MICROS);	// Frequency
-	Capacitance 	= UnitLn3_R1 * Period;  		// UNITADJUST_CAP * Period / (LN_3 * Resist_R1);
+	#if defined(AVGPERIOD_AS_FLOAT)
+	AvgPeriod	= (float)Duration / (float)samples;	// Average AvgPeriod - Returns a float
+	#endif
+	#if defined(AVGPERIOD_AS_INT)
+	AvgPeriod	= Duration / samples;			// Average AvgPeriod - Returns an int
+	#endif
+	Frequency   	= 1 / (AvgPeriod/SECONDS_TO_MICROS);	// Frequency
+	Capacitance 	= UnitLn3_R1 * AvgPeriod;  		// UNITADJUST_CAP * AvgPeriod / (LN_3 * Resist_R1);
 	Capacitance	= Capacitance - Baseline_Cap; 		// Capacitance 
 
 	// Return
@@ -402,9 +426,14 @@ float Timer555Monostable::GetResistance(uint8_t samples)
 	}
 
 	// Update variables
-	Period		= Duration / samples;			// Average Period
-	Frequency   	= 1 / (Period/SECONDS_TO_MICROS);	// Frequency
-	Resistance	= UnitLn3_C1 * Period; 			// UNITADJUST_RES * Period / (LN_3 * Capacit_C1);
+	#if defined(AVGPERIOD_AS_FLOAT)
+	AvgPeriod	= (float)Duration / (float)samples;	// Average AvgPeriod - Returns a float
+	#endif
+	#if defined(AVGPERIOD_AS_INT)
+	AvgPeriod	= Duration / samples;			// Average AvgPeriod - Returns an int
+	#endif
+	Frequency   	= 1 / (AvgPeriod/SECONDS_TO_MICROS);	// Frequency
+	Resistance	= UnitLn3_C1 * AvgPeriod; 			// UNITADJUST_RES * AvgPeriod / (LN_3 * Capacit_C1);
 	Resistance	= Resistance - Baseline_Res;		// Resistance
 
 	// Return
