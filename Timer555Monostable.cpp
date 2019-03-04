@@ -423,7 +423,7 @@ float Timer555Monostable::GetCapacitance(uint8_t samples)
 
 	// capacitance read: we read the capacitor 'sample' times
 	for (uint8_t i = 0; i < samples; i++) {    		// loop for samples parameter - simple lowpass filter
-		if defined(TIMER_USE_MICROS)
+		#if defined(TIMER_USE_MICROS)
 			Duration += RunTimer_Micros();			// (timeout not implemented yet)
 		#elif defined(TIMER_USE_SYSTICK)
 			Duration += RunTimer_SysTick();			// (timeout not implemented yet)
@@ -477,7 +477,7 @@ float Timer555Monostable::GetResistance(uint8_t samples)
 
 	// capacitance read: we read the capacitor 'sample' times
 	for (uint8_t i = 0; i < samples; i++) {    		// loop for samples parameter - simple lowpass filter
-		if defined(TIMER_USE_MICROS)
+		#if defined(TIMER_USE_MICROS)
 			Duration += RunTimer_Micros();			// (timeout not implemented yet)
 		#elif defined(TIMER_USE_SYSTICK)
 			Duration += RunTimer_SysTick();			// (timeout not implemented yet)
