@@ -1,8 +1,8 @@
 /*
   File:         Timer555Monostable.h
-  Version:      0.0.6
+  Version:      0.1.1
   Date:         19-Dec-2018
-  Revision:     16-Feb-2019
+  Revision:     04-Mar-2019
   Author:       Jerome Drouin (jerome.p.drouin@gmail.com)
 
   https://github.com/newEndeavour/Timer555Monostable
@@ -63,7 +63,12 @@
 		  important, so will not mention it again, but let me just say that speed is crucial in this application - There,
 		  I said it again...).
 		  Changed Period into float from uint_32 to avoid casting during calcs (costly).
-
+  - 0.1.0	: Implemented a sub-microseconds approach to RC timing: SysTick.
+		  Added supporting variables (SysTickBase, SysTickLOAD, SysTickLOADFac) and associated methods.
+		  Note that this approach is valid only for T=RC under 1ms.
+		  Please observe the following references and Credits:
+		  "https://stackoverflow.com/questions/27885330/systick-load-vs-systick-calib"
+		  "http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.dui0497a/Bhcjegci.html"
   
 */
 
@@ -89,6 +94,7 @@
 #define DIRECT_MODE_OUTPUT(base, mask)  ((*((base)+1)) |= (mask))
 #define DIRECT_WRITE_LOW(base, mask)    ((*((base)+2)) &= ~(mask))
 #define DIRECT_WRITE_HIGH(base, mask)   ((*((base)+2)) |= (mask))
+#define TIMER555MONOSTABLE_BOARD_TYPE "__AVR__"
 
 #elif defined(__MK20DX128__) || defined(__MK20DX256__) || defined(__MK66FX1M0__) || defined(__MK64FX512__)
 #define PIN_TO_BASEREG(pin)             (portOutputRegister(pin))
@@ -100,6 +106,7 @@
 #define DIRECT_MODE_OUTPUT(base, mask)  (*((base)+640) = 1)
 #define DIRECT_WRITE_LOW(base, mask)    (*((base)+256) = 1)
 #define DIRECT_WRITE_HIGH(base, mask)   (*((base)+128) = 1)
+#define TIMER555MONOSTABLE_BOARD_TYPE "__MK20DX128__"
 
 #elif defined(__MKL26Z64__)
 #define PIN_TO_BASEREG(pin)             (portOutputRegister(pin))
@@ -111,6 +118,7 @@
 #define DIRECT_MODE_OUTPUT(base, mask)  (*((base)+20) |= (mask))
 #define DIRECT_WRITE_LOW(base, mask)    (*((base)+8) = (mask))
 #define DIRECT_WRITE_HIGH(base, mask)   (*((base)+4) = (mask))
+#define TIMER555MONOSTABLE_BOARD_TYPE "__MKL26Z64__"
 
 #elif defined(__SAM3X8E__)
 #define PIN_TO_BASEREG(pin)             (&(digitalPinToPort(pin)->PIO_PER))
@@ -122,6 +130,7 @@
 #define DIRECT_MODE_OUTPUT(base, mask)  ((*((base)+4)) = (mask))
 #define DIRECT_WRITE_LOW(base, mask)    ((*((base)+13)) = (mask))
 #define DIRECT_WRITE_HIGH(base, mask)   ((*((base)+12)) = (mask))
+#define TIMER555MONOSTABLE_BOARD_TYPE "__SAM3X8E__"
 
 #elif defined(__PIC32MX__)
 #define PIN_TO_BASEREG(pin)             (portModeRegister(digitalPinToPort(pin)))
@@ -133,6 +142,7 @@
 #define DIRECT_MODE_OUTPUT(base, mask)  ((*(base+1)) = (mask))            //TRISXCLR + 0x04
 #define DIRECT_WRITE_LOW(base, mask)    ((*(base+8+1)) = (mask))          //LATXCLR  + 0x24
 #define DIRECT_WRITE_HIGH(base, mask)   ((*(base+8+2)) = (mask))          //LATXSET + 0x28
+#define TIMER555MONOSTABLE_BOARD_TYPE "__PIC32MX__"
 
 #elif defined(ARDUINO_ARCH_ESP8266)
 #define PIN_TO_BASEREG(pin)             (portOutputRegister(digitalPinToPort(pin)))
@@ -144,6 +154,7 @@
 #define DIRECT_MODE_OUTPUT(base, mask)  ((*(base+4)) = (mask))              //GPIO_ENABLE_W1TS_ADDRESS
 #define DIRECT_WRITE_LOW(base, mask)    ((*(base+2)) = (mask))              //GPIO_OUT_W1TC_ADDRESS
 #define DIRECT_WRITE_HIGH(base, mask)   ((*(base+1)) = (mask))              //GPIO_OUT_W1TS_ADDRESS
+#define TIMER555MONOSTABLE_BOARD_TYPE "ARDUINO_ARCH_ESP8266"
 
 #elif defined(__SAMD21G18A__)
 // runs extremely slow/unreliable on Arduino Zero - help wanted....
@@ -156,6 +167,7 @@
 #define DIRECT_MODE_OUTPUT(base, mask)  ((*((base)+2)) = (mask))
 #define DIRECT_WRITE_LOW(base, mask)    ((*((base)+5)) = (mask))
 #define DIRECT_WRITE_HIGH(base, mask)   ((*((base)+6)) = (mask))
+#define TIMER555MONOSTABLE_BOARD_TYPE "__SAMD21G18A__"
 
 #elif defined(RBL_NRF51822)
 #define PIN_TO_BASEREG(pin)             (0)
@@ -167,6 +179,7 @@
 #define DIRECT_WRITE_HIGH(base, pin)    nrf_gpio_pin_set(pin)
 #define DIRECT_MODE_INPUT(base, pin)    nrf_gpio_cfg_input(pin, NRF_GPIO_PIN_NOPULL)
 #define DIRECT_MODE_OUTPUT(base, pin)   nrf_gpio_cfg_output(pin)
+#define TIMER555MONOSTABLE_BOARD_TYPE "RBL_NRF51822"
 
 #elif defined(__arc__)
 
@@ -247,6 +260,8 @@ void directWriteHigh(volatile IO_REG_TYPE *base, IO_REG_TYPE pin)
 #define DIRECT_MODE_OUTPUT(base, pin)	directModeOutput(base, pin)
 #define DIRECT_WRITE_LOW(base, pin)	directWriteLow(base, pin)
 #define DIRECT_WRITE_HIGH(base, pin)	directWriteHigh(base, pin)
+#define TIMER555MONOSTABLE_BOARD_TYPE "__arc__"
+
 
 #endif
 
@@ -258,6 +273,11 @@ void directWriteHigh(volatile IO_REG_TYPE *base, IO_REG_TYPE pin)
 //#define AVGPERIOD_AS_INT	0		// AvgPeriod = Duration / Sample returns an int (without decimals)
 #define AVGPERIOD_AS_FLOAT	1		// AvgPeriod = Duration / Sample returns a float (with decimals)
 
+//#define TIMER_USE_MICROS	  1		// Timer uses the Micros Approach for timing T=RC
+#define TIMER_USE_SYSTICK	1		// Timer uses the SysTick Register Approach for timing T=RC
+						// WARNING!!the SYSTICK Method valid only 
+						// if Period < 1ms (1000uS). 
+						// Nothing is done to manage Switch over in case Time is longer 
 
 #define FARADS_TO_NANOFARADS 	1E9
 #define SECONDS_TO_MICROS 	1E6
@@ -296,10 +316,11 @@ class Timer555Monostable
 	float 		GetBaseline_Cap();
 	float 		GetBaseline_Res();
 
-	float 		GetFrequency(void);
+	float 		GetAvgFrequency(void);
 	float 		GetAvgPeriod(void);
 	uint32_t 	GetTotal(void);
-	uint32_t 	GetDuration(void);
+	//uint32_t 	GetDuration(void);
+	float 		GetDuration(void);
 
 	/*
 	uint32_t 	GetDuration1(void);
@@ -316,8 +337,13 @@ class Timer555Monostable
 	void  		DisableDebug();
 	int 		GetAvgPeriodType(void);
 
+	int		GetSysTickBase();
+	int		GetSysTickLOAD();
+	float		GetSysTickLOADFac();
+
 	String 		GetVersion();
 	String 		GetReleaseDate();
+	String 		GetBoardType();
 
 
   // library-accessible "private" interface
@@ -329,6 +355,11 @@ class Timer555Monostable
 	uint8_t	TriggerPin;		//Trigger-Pulse Pin: connect to Pin2 of 555 Timer
 	uint8_t	OutputPin;		//Output-Signal Pin: connect to Pin3 of 555 Timer
 	uint8_t	DischargePin;		//
+
+	int	SysTickBase;		//
+	int	SysTickLOAD;		//
+	float	SysTickLOADFac;		//
+
 
 	/*
 	uint32_t Duration1;		//in uS
@@ -343,14 +374,15 @@ class Timer555Monostable
 
 	unsigned long StartTimer;	//in uS	
 	unsigned long StopTimer;	//in uS
-	unsigned long Duration;		//in uS
+	//unsigned long Duration;		//in uS
+	float 	 Duration;		//in uS
 
 	uint32_t Resist_R1;		//in Ohms
 	uint32_t Capacit_C1;		//in pF
 	uint32_t Total;			//in loop cycles
 
 	float	 AvgPeriod;		//in uS
-	float 	 Frequency;		//in Hz
+	float 	 AvgFrequency;		//in Hz
 	float 	 Capacitance;		//in nF
 	float 	 Resistance;		//in Ohms
 	float 	 Baseline_Cap;		//in nF
@@ -373,9 +405,11 @@ class Timer555Monostable
   // methods
 	int 	OneCycle_Capacitance(void);
 	int 	OneCycle_Resistance(void);
-	unsigned long RunTimer(void);
+	//unsigned long RunTimer(void);
+	float   RunTimer_Micros(void);
+	float   RunTimer_SysTick(void);
 	void 	ResetErrors(void);
-
+	void 	Calibrate_SysTickParams();
 };
 
 #endif

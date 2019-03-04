@@ -1,8 +1,8 @@
 /*
   File:         Timer555Monostable.cpp
-  Version:      0.0.6
+  Version:      0.1.1
   Date:         19-Dec-2018
-  Revision:     16-Feb-2019
+  Revision:     04-Mar-2019
   Author:       Jerome Drouin (jerome.p.drouin@gmail.com)
 
   Editions:	Please go to Timer555Monostable.h for Edition Notes.
@@ -96,6 +96,8 @@ Timer555Monostable::Timer555Monostable(uint8_t _TriggerPin, uint8_t _OutputPin, 
 	DIRECT_MODE_OUTPUT(sReg, sBit); 				// TriggerPin to OUTPUT
 	DIRECT_MODE_INPUT(rReg, rBit); 					// OutputPin to INPUT
     	DIRECT_WRITE_HIGH(sReg, sBit);					// TriggerPin high -> No unwanted Trigger pulse
+	
+	Calibrate_SysTickParams();
 
 	//Check for errors
 	ResetErrors();
@@ -138,6 +140,8 @@ Timer555Monostable::Timer555Monostable(uint8_t _TriggerPin, uint8_t _OutputPin, 
 	DIRECT_MODE_OUTPUT(sReg, sBit); 				// TriggerPin to OUTPUT
 	DIRECT_MODE_INPUT(rReg, rBit); 					// OutputPin to INPUT
     	DIRECT_WRITE_HIGH(sReg, sBit);					// TriggerPin high -> No unwanted Trigger pulse
+
+	Calibrate_SysTickParams();
 
 	//Check for errors
 	ResetErrors();
@@ -186,6 +190,8 @@ Timer555Monostable::Timer555Monostable(uint8_t _TriggerPin, uint8_t _OutputPin, 
 	dReg = PIN_TO_BASEREG(_DischargePin);				// get pointer to output register
 	DIRECT_MODE_INPUT(dReg, dBit); 					// DischargePin to INPUT -> Cap. charging possible
 
+	Calibrate_SysTickParams();
+
 	//Check for errors
 	ResetErrors();
 }
@@ -233,6 +239,8 @@ Timer555Monostable::Timer555Monostable(uint8_t _TriggerPin, uint8_t _OutputPin, 
 	dReg = PIN_TO_BASEREG(_DischargePin);				// get pointer to output register
 	DIRECT_MODE_INPUT(dReg, dBit); 					// DischargePin to INPUT -> Cap. charging possible
 
+	Calibrate_SysTickParams();
+
 	//Check for errors
 	ResetErrors();
 }
@@ -253,6 +261,13 @@ String Timer555Monostable::GetReleaseDate()
 {
 	return REL_Timer555Monostable;
 }
+
+// Returns the Board Type
+String Timer555Monostable::GetBoardType()
+{
+	return TIMER555MONOSTABLE_BOARD_TYPE;
+}
+
 
 // Returns the Baseline_Cap Parameters
 float Timer555Monostable::GetBaseline_Cap()
@@ -278,10 +293,10 @@ float Timer555Monostable::GetResistance()
 	return Resistance;
 }
 
-// Returns the last available calculated frequency
-float Timer555Monostable::GetFrequency(void)
+// Returns the last available calculated AvgFrequency
+float Timer555Monostable::GetAvgFrequency(void)
 {
-	return Frequency;
+	return AvgFrequency;
 }
 
 // Returns the last available calculated Average AvgPeriod in microseconds
@@ -302,7 +317,8 @@ int Timer555Monostable::GetAvgPeriodType(void)
 }
 
 // Returns the last available calculated Duration in microseconds
-uint32_t Timer555Monostable::GetDuration(void)
+//uint32_t Timer555Monostable::GetDuration(void)
+float Timer555Monostable::GetDuration(void)
 {
 	return Duration;
 }
@@ -313,6 +329,25 @@ uint32_t Timer555Monostable::GetTotal(void)
 {
 	return Total;
 }
+
+// Returns the last available SysTickBase
+int Timer555Monostable::GetSysTickBase(void)
+{
+	return SysTickBase;
+}
+
+// Returns the last available SysTickLOAD
+int Timer555Monostable::GetSysTickLOAD(void)
+{
+	return SysTickLOAD;
+}
+
+// Returns the last available SysTickLOADFac
+float Timer555Monostable::GetSysTickLOADFac(void)
+{
+	return SysTickLOADFac;
+}
+
 
 void  Timer555Monostable::EnableDebug(void)
 {
@@ -388,20 +423,41 @@ float Timer555Monostable::GetCapacitance(uint8_t samples)
 
 	// capacitance read: we read the capacitor 'sample' times
 	for (uint8_t i = 0; i < samples; i++) {    		// loop for samples parameter - simple lowpass filter
-		// if (OneCycle_Capacitance() < 0)  return -2;  // variable over timeout
-		Duration += RunTimer();				// no test -> faster for now (timeout not implemented yet)
+		if defined(TIMER_USE_MICROS)
+			Duration += RunTimer_Micros();			// (timeout not implemented yet)
+		#elif defined(TIMER_USE_SYSTICK)
+			Duration += RunTimer_SysTick();			// (timeout not implemented yet)
+		#endif
+
+		//Serial.print("\n-->loop Duration :");	
+    		//Serial.print(Duration,6);	
+
 	}
 
 	// Update variables
 	#if defined(AVGPERIOD_AS_FLOAT)
-	AvgPeriod	= (float)Duration / (float)samples;	// Average AvgPeriod - Returns a float
+		AvgPeriod	= (float)Duration / (float)samples;	// Average AvgPeriod - Returns a float
 	#endif
+
 	#if defined(AVGPERIOD_AS_INT)
-	AvgPeriod	= Duration / samples;			// Average AvgPeriod - Returns an int
+		AvgPeriod	= Duration / samples;			// Average AvgPeriod - Returns an int
 	#endif
-	Frequency   	= 1 / (AvgPeriod/SECONDS_TO_MICROS);	// Frequency
+
+	AvgFrequency   	= 1 / (AvgPeriod/SECONDS_TO_MICROS);	// AvgFrequency
 	Capacitance 	= UnitLn3_R1 * AvgPeriod;  		// UNITADJUST_CAP * AvgPeriod / (LN_3 * Resist_R1);
 	Capacitance	= Capacitance - Baseline_Cap; 		// Capacitance 
+
+	/*
+	Serial.print("\n---- GetCapacitance ----");	
+	Serial.print("\n-->Duration :");	
+    	Serial.print(Duration,6);	
+	Serial.print("\n-->AvgPeriod :");	
+    	Serial.print(AvgPeriod,6);	
+	Serial.print("\n-->AvgFrequency :");	
+    	Serial.print(AvgFrequency,6);	
+	Serial.print("\n-->Capacitance (1E3) :");	
+    	Serial.print(Capacitance *1000,6);	
+	//*/
 
 	// Return
 	return Capacitance;
@@ -421,18 +477,23 @@ float Timer555Monostable::GetResistance(uint8_t samples)
 
 	// capacitance read: we read the capacitor 'sample' times
 	for (uint8_t i = 0; i < samples; i++) {    		// loop for samples parameter - simple lowpass filter
-		// if (OneCycle_Resistance() < 0)  return -2;   // variable over timeout
-		Duration += RunTimer();				// no test -> faster for now (timeout not implemented yet)
+		if defined(TIMER_USE_MICROS)
+			Duration += RunTimer_Micros();			// (timeout not implemented yet)
+		#elif defined(TIMER_USE_SYSTICK)
+			Duration += RunTimer_SysTick();			// (timeout not implemented yet)
+		#endif
 	}
 
 	// Update variables
 	#if defined(AVGPERIOD_AS_FLOAT)
-	AvgPeriod	= (float)Duration / (float)samples;	// Average AvgPeriod - Returns a float
+		AvgPeriod	= (float)Duration / (float)samples;	// Average AvgPeriod - Returns a float
 	#endif
+
 	#if defined(AVGPERIOD_AS_INT)
-	AvgPeriod	= Duration / samples;			// Average AvgPeriod - Returns an int
+		AvgPeriod	= Duration / samples;			// Average AvgPeriod - Returns an int
 	#endif
-	Frequency   	= 1 / (AvgPeriod/SECONDS_TO_MICROS);	// Frequency
+
+	AvgFrequency   	= 1 / (AvgPeriod/SECONDS_TO_MICROS);	// AvgFrequency
 	Resistance	= UnitLn3_C1 * AvgPeriod; 			// UNITADJUST_RES * AvgPeriod / (LN_3 * Capacit_C1);
 	Resistance	= Resistance - Baseline_Res;		// Resistance
 
@@ -446,7 +507,8 @@ float Timer555Monostable::GetResistance(uint8_t samples)
 // Private Methods /////////////////////////////////////////////////////////////
 // Functions only available to other functions in this library
 // Charge-Discharge code for Capacitance and for Resistance
-unsigned long Timer555Monostable::RunTimer(void) {
+
+float Timer555Monostable::RunTimer_Micros(void) {
 
     noInterrupts();			// Disable interrupts
     
@@ -464,24 +526,85 @@ unsigned long Timer555Monostable::RunTimer(void) {
     DIRECT_WRITE_LOW(sReg, sBit);	// TriggerPin Register low -> 555 Trigger
     					// No add. delay required: DIRAC pulse duration approx 200ns
     DIRECT_WRITE_HIGH(sReg, sBit);	// TriggerPin Register high -> Stop Trigger pulse    
-    
-    interrupts();			// Restore interrupts
- 
-    //---- RC Read ----------------------	
-    StartTimer 		= micros();	// Start Timer 
+     
+    interrupts();			// Restore interrupts ---> Transfered below as a test
+
+    //---- T=RC Read --------------------
+    StartTimer 	= micros();	// Start Timer 
     while (DIRECT_READ(rReg, rBit)) {	// while Output pin is HIGH
         Total++;			// Count loops -> Total variable	
     }
     StopTimer   	= micros();	// Stop Timer
+
+    /* 
+    Serial.print("\nTimerStart:");	
+    Serial.print(StartTimer);	
+    Serial.print("\nTimerStop:");	
+    Serial.print(StopTimer);	
+    Serial.print("\nDuration :");	
+    Serial.print(StopTimer - StartTimer);	
+    //*/
         	
+    // Calculate and return Timer Duration
+    return ((StopTimer - StartTimer));
+		
+}
+
+
+float Timer555Monostable::RunTimer_SysTick(void) {
+
+    noInterrupts();			// Disable interrupts
+    
+    //---- Discharging Capacitor --------
+    if (ObjecthasDischargePin) {
+	DIRECT_MODE_INPUT(dReg, dBit);	// DischargePin to INPUT (pullups are off)
+	DIRECT_MODE_OUTPUT(dReg, dBit); // DischargePin to OUTPUT
+	DIRECT_WRITE_LOW(dReg, dBit);	// pin is now LOW AND OUTPUT
+	delayMicroseconds(2);		// usually, takes no more than a few nanoSeconds: 2us is plenty of time...
+	DIRECT_MODE_INPUT(dReg, dBit);	// DischargePin to INPUT (pullups are off)
+    }
+	
+
+    //---- Pulse ------------------------	
+    DIRECT_WRITE_LOW(sReg, sBit);	// TriggerPin Register low -> 555 Trigger
+    					// No add. delay required: DIRAC pulse duration approx 200ns
+    DIRECT_WRITE_HIGH(sReg, sBit);	// TriggerPin Register high -> Stop Trigger pulse    
+     
+    //---- T=RC Read --------------------
+    StartTimer 		= SysTick->VAL;	// Start Timer 
+    while (DIRECT_READ(rReg, rBit)) {	// while Output pin is HIGH
+        //Total++;			// Count loops -> Total variable	
+    }
+    StopTimer   	= SysTick->VAL;	// Stop Timer
+    if (StartTimer<StopTimer) StartTimer += SysTickLOAD;	
+
+    interrupts();			// Restore interrupts
+
+    /* 
+    Serial.print("\nTimerStart:");	
+    Serial.print(StartTimer);	
+    Serial.print("\nTimerStop:");	
+    Serial.print(StopTimer);	
+    Serial.print("\nSysTickBase:");	
+    Serial.print(SysTickBase);	
+    Serial.print("\nSysTickLOADFac:");	
+    Serial.print(SysTickLOADFac,8);	
+
+    Serial.print("\nTicks:");	
+    Serial.print(StartTimer - StopTimer - SysTickBase);	
+    Serial.print("\nDuration :");	
+    Serial.print((StartTimer - StopTimer - SysTickBase)/SysTickLOADFac,6);	
+    //*/
+
     // Calculate and return Timer Duration	
-    return ((StopTimer - StartTimer) - RISEFALL_ADJUST);
+    return (StartTimer - StopTimer - SysTickBase) / SysTickLOADFac;	//WARNING!: Start - Stop  as SysTick counter is down
+		
 }
 
 
 int Timer555Monostable::OneCycle_Capacitance(void) {
 
-    Duration		+= RunTimer();
+    Duration		+= RunTimer_Micros();
     
     //Return
     return 1;
@@ -490,7 +613,7 @@ int Timer555Monostable::OneCycle_Capacitance(void) {
 
 int Timer555Monostable::OneCycle_Resistance(void) {
 
-    Duration		+= RunTimer();
+    Duration		+= RunTimer_Micros();
     
     //Return
     return 1;
@@ -514,6 +637,23 @@ void Timer555Monostable::ResetErrors(void)
 	if (Capacit_C1<0) 	error =-1;
 
 }
+
+
+// Calibrates SysTickBase
+void Timer555Monostable::Calibrate_SysTickParams(void)
+{
+    noInterrupts();			// Disable interrupts
+    
+    StartTimer 		= SysTick->VAL;	// Start Timer 
+    StopTimer   	= SysTick->VAL;	// Stop Timer
+    SysTickBase    	= StartTimer - StopTimer;
+
+    SysTickLOAD		= SysTick->LOAD;
+    SysTickLOADFac	= ((float)SysTickLOAD+1)/(float)1000;
+
+    interrupts();			// Restore interrupts
+}
+
 
 // /////////////////////////////////////////////////////////////////////////////
 
