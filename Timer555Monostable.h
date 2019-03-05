@@ -106,7 +106,17 @@
 #define DIRECT_MODE_OUTPUT(base, mask)  (*((base)+640) = 1)
 #define DIRECT_WRITE_LOW(base, mask)    (*((base)+256) = 1)
 #define DIRECT_WRITE_HIGH(base, mask)   (*((base)+128) = 1)
-#define TIMER555MONOSTABLE_BOARD_TYPE "__MK20DX128__"
+
+//Board Type
+#if defined(__MK20DX128__) 
+	#define TIMER555MONOSTABLE_BOARD_TYPE "__MK20DX128__"
+#elif defined(__MK20DX256__) 
+	#define TIMER555MONOSTABLE_BOARD_TYPE "__MK20DX256__"
+#elif defined(__MK66FX1M0__) 
+	#define TIMER555MONOSTABLE_BOARD_TYPE "__MK66FX1M0__"
+#elif defined(__MK64FX512__)
+	#define TIMER555MONOSTABLE_BOARD_TYPE "__MK64FX512__"
+#endif
 
 #elif defined(__MKL26Z64__)
 #define PIN_TO_BASEREG(pin)             (portOutputRegister(pin))
@@ -262,13 +272,12 @@ void directWriteHigh(volatile IO_REG_TYPE *base, IO_REG_TYPE pin)
 #define DIRECT_WRITE_HIGH(base, pin)	directWriteHigh(base, pin)
 #define TIMER555MONOSTABLE_BOARD_TYPE "__arc__"
 
-
 #endif
 
 
 // DEFINES /////////////////////////////////////////////////////////////
-#define VER_Timer555Monostable	"0.0.6"		// 
-#define REL_Timer555Monostable	"16Feb2019"	//
+#define VER_Timer555Monostable	"0.1.1"		// 
+#define REL_Timer555Monostable	"04Ma2019"	//
 
 //#define AVGPERIOD_AS_INT	0		// AvgPeriod = Duration / Sample returns an int (without decimals)
 #define AVGPERIOD_AS_FLOAT	1		// AvgPeriod = Duration / Sample returns a float (with decimals)
@@ -278,6 +287,10 @@ void directWriteHigh(volatile IO_REG_TYPE *base, IO_REG_TYPE pin)
 						// WARNING!!the SYSTICK Method valid only 
 						// if Period < 1ms (1000uS). 
 						// Nothing is done to manage Switch over in case Time is longer 
+
+//#define ENABLE_TOTAL_CALC	  1		// Object Enables the Calculation of Total = Number of Loops inside Timer	
+						// Note: this is an expensive feature (time), so here for those who need it
+						// uncomment this line to enable the function
 
 #define FARADS_TO_NANOFARADS 	1E9
 #define SECONDS_TO_MICROS 	1E6
