@@ -63,7 +63,7 @@
 		  important, so will not mention it again, but let me just say that speed is crucial in this application - There,
 		  I said it again...).
 		  Changed Period into float from uint_32 to avoid casting during calcs (costly).
-  - 0.1.0	: Implemented a sub-microseconds approach to RC timing: SysTick.
+  - 0.1.1	: Implementation of a sub-microseconds approach to RC timing: SysTick.
 		  Added supporting variables (SysTickBase, SysTickLOAD, SysTickLOADFac) and associated methods.
 		  Note that this approach is valid only for T=RC under 1ms.
 		  Please observe the following references and Credits:
@@ -277,16 +277,35 @@ void directWriteHigh(volatile IO_REG_TYPE *base, IO_REG_TYPE pin)
 
 // DEFINES /////////////////////////////////////////////////////////////
 #define VER_Timer555Monostable	"0.1.1"		// 
-#define REL_Timer555Monostable	"04Ma2019"	//
+#define REL_Timer555Monostable	"04-Mar-2019"	//
 
 //#define AVGPERIOD_AS_INT	0		// AvgPeriod = Duration / Sample returns an int (without decimals)
 #define AVGPERIOD_AS_FLOAT	1		// AvgPeriod = Duration / Sample returns a float (with decimals)
 
+//
+//
+//	TIMER DEFINITION: WARNING !
+//	ONLY CHANGE IF YOU KNOW WHAT YOU ARE DOING !!!!
+//
+//
 //#define TIMER_USE_MICROS	  1		// Timer uses the Micros Approach for timing T=RC
 #define TIMER_USE_SYSTICK	1		// Timer uses the SysTick Register Approach for timing T=RC
 						// WARNING!!the SYSTICK Method valid only 
 						// if Period < 1ms (1000uS). 
 						// Nothing is done to manage Switch over in case Time is longer 
+//
+//
+//
+//
+//
+
+
+
+#if defined (TIMER_USE_MICROS)
+#define TIMER555MONOSTABLE_TIMING_METH "MICROS"
+#elif defined(TIMER_USE_SYSTICK)
+#define TIMER555MONOSTABLE_TIMING_METH "SYSTICK"
+#endif
 
 //#define ENABLE_TOTAL_CALC	  1		// Object Enables the Calculation of Total = Number of Loops inside Timer	
 						// Note: this is an expensive feature (time), so here for those who need it
@@ -357,6 +376,7 @@ class Timer555Monostable
 	String 		GetVersion();
 	String 		GetReleaseDate();
 	String 		GetBoardType();
+	String 		GetTimingMethod();
 
 
   // library-accessible "private" interface

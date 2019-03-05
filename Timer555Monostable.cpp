@@ -269,6 +269,13 @@ String Timer555Monostable::GetBoardType()
 }
 
 
+// Returns the Method for Timing T=RC
+String Timer555Monostable::GetTimingMethod()
+{
+	return TIMER555MONOSTABLE_TIMING_METH;
+}
+
+
 // Returns the Baseline_Cap Parameters
 float Timer555Monostable::GetBaseline_Cap()
 {
@@ -532,7 +539,9 @@ float Timer555Monostable::RunTimer_Micros(void) {
     //---- T=RC Read --------------------
     StartTimer 	= micros();	// Start Timer 
     while (DIRECT_READ(rReg, rBit)) {	// while Output pin is HIGH
-        Total++;			// Count loops -> Total variable	
+        #if defined(ENABLE_TOTAL_CALC)
+		Total++;			// Count loops -> Total variable	
+	#endif
     }
     StopTimer   	= micros();	// Stop Timer
 
@@ -573,9 +582,12 @@ float Timer555Monostable::RunTimer_SysTick(void) {
     //---- T=RC Read --------------------
     StartTimer 		= SysTick->VAL;	// Start Timer 
     while (DIRECT_READ(rReg, rBit)) {	// while Output pin is HIGH
-        //Total++;			// Count loops -> Total variable	
+        #if defined(ENABLE_TOTAL_CALC)
+		Total++;			// Count loops -> Total variable	
+	#endif
     }
     StopTimer   	= SysTick->VAL;	// Stop Timer
+
     if (StartTimer<StopTimer) StartTimer += SysTickLOAD;	
 
     interrupts();			// Restore interrupts
@@ -593,11 +605,11 @@ float Timer555Monostable::RunTimer_SysTick(void) {
     Serial.print("\nTicks:");	
     Serial.print(StartTimer - StopTimer - SysTickBase);	
     Serial.print("\nDuration :");	
-    Serial.print((StartTimer - StopTimer - SysTickBase)/SysTickLOADFac,6);	
+    Serial.print((StartTimer - StopTimer - SysTickBase) * SysTickLOADFac,6);	
     //*/
 
     // Calculate and return Timer Duration	
-    return (StartTimer - StopTimer - SysTickBase) / SysTickLOADFac;	//WARNING!: Start - Stop  as SysTick counter is down
+    return (StartTimer - StopTimer - SysTickBase) * SysTickLOADFac;	//WARNING!: Start - Stop  as SysTick counter is down
 		
 }
 
@@ -649,7 +661,7 @@ void Timer555Monostable::Calibrate_SysTickParams(void)
     SysTickBase    	= StartTimer - StopTimer;
 
     SysTickLOAD		= SysTick->LOAD;
-    SysTickLOADFac	= ((float)SysTickLOAD+1)/(float)1000;
+    SysTickLOADFac	= (float)1000/((float)SysTickLOAD+1);
 
     interrupts();			// Restore interrupts
 }

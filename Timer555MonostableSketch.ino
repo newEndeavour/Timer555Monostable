@@ -44,6 +44,8 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 */
+
+
 #include <Timer555Monostable.h>
 
 #define TRIGGER_FREQ_mS        1000          
@@ -68,6 +70,15 @@ void setup() {
   Serial.begin(115200);
 
   while (!Serial);
+
+  Serial.print("\n---- Serial Started ----\n");
+
+  Serial.print("\n---- Object Versions ----\n");
+  Serial.print("\nBoard\t:"+Timer555.GetBoardType());
+  Serial.print("\nVersion\t:"+Timer555.GetVersion());    
+  Serial.print("\nRelease\t:"+Timer555.GetReleaseDate());   
+  Serial.print("\nTiming\t:"+Timer555.GetTimingMethod());   
+  Serial.print("\n\n");   
 
   pinMode(Output555, INPUT);              // PIN 3 = OUTPUT OF 555 CONNECTED HERE
   pinMode(Trigger555, OUTPUT);            // CONNECTED TO PIN 2 = TRIGGER OF 555
@@ -124,7 +135,7 @@ void loop() {
   Serial.print(" us");
 
   Serial.print("\tFreq:");
-  Serial.print(Timer555.GetFrequency(), 3);
+  Serial.print(Timer555.GetAvgFrequency(), 3);
   Serial.print(" Hz");
 
   //SAMPLE SIZE 2
@@ -152,7 +163,7 @@ void loop() {
   Serial.print(" us");
 
   Serial.print("\tFreq:");
-  Serial.print(Timer555.GetFrequency(), 3);
+  Serial.print(Timer555.GetAvgFrequency(), 3);
   Serial.print(" Hz");
 
   //SAMPLE SIZE 3
@@ -180,7 +191,7 @@ void loop() {
   Serial.print(" us");
 
   Serial.print("\tFreq:");
-  Serial.print(Timer555.GetFrequency(), 3);
+  Serial.print(Timer555.GetAvgFrequency(), 3);
   Serial.print(" Hz");
   
   Serial.print("\n\n");
