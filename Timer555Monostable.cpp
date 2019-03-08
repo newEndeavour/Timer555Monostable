@@ -1,8 +1,8 @@
 /*
   File:         Timer555Monostable.cpp
-  Version:      0.1.1
+  Version:      0.1.2
   Date:         19-Dec-2018
-  Revision:     04-Mar-2019
+  Revision:     08-Mar-2019
   Author:       Jerome Drouin (jerome.p.drouin@gmail.com)
 
   Editions:	Please go to Timer555Monostable.h for Edition Notes.
@@ -15,10 +15,10 @@
   Capacitance by default is expressed in NanoFarads. 
   Resistance by default is expressed in Ohms. 
 	
-	C = (a / b x T) / (1.1 x R1) ; with T in seconds and C in nF
-	C		: Capacitance in nF
+	C = (a / b x T) / (1.1 x R1) ; with T in seconds and C in pF
+	C		: Capacitance in pF
 	R1		: Resistance in Ohms
-	a = 1E9		: 1,000,000,000 nano Farads in 1 Farad (FARADS_TO_NANOFARADS)
+	a = 1E12	: 1,000,000,000,000 pico Farads in 1 Farad (FARADS_TO_PICOFARADS)
 	b = 1E6 	: 1,000,000 microseconds in one second (SECONDS_TO_MICROS)
   
 	R = (c / b x T) / (1.1 x C1) ; with T in seconds and C in pF

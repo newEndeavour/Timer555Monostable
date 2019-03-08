@@ -1,8 +1,8 @@
 /*
   File:         Timer555Monostable.h
-  Version:      0.1.1
+  Version:      0.1.2
   Date:         19-Dec-2018
-  Revision:     04-Mar-2019
+  Revision:     08-Mar-2019
   Author:       Jerome Drouin (jerome.p.drouin@gmail.com)
 
   https://github.com/newEndeavour/Timer555Monostable
@@ -13,10 +13,10 @@
   Capacitance by default is expressed in NanoFarads. 
   Resistance by default is expressed in Ohms. 
 	
-	C = (a / b x T) / (1.1 x R1) ; with T in seconds and C in nF
-	C		: Capacitance in nF
+	C = (a / b x T) / (1.1 x R1) ; with T in seconds and C in pF
+	C		: Capacitance in pF
 	R1		: Resistance in Ohms
-	a = 1E9		: 1,000,000,000 nano Farads in 1 Farad (FARADS_TO_NANOFARADS)
+	a = 1E12	: 1,000,000,000,000 pico Farads in 1 Farad (FARADS_TO_PICOFARADS)
 	b = 1E6 	: 1,000,000 microseconds in one second (SECONDS_TO_MICROS)
   
 	R = (c / b x T) / (1.1 x C1) ; with T in seconds and C in pF
@@ -62,13 +62,15 @@
 		  and decommissioned OneCycle_Capacitance to shorten return time (I think you got the picture that speed is
 		  important, so will not mention it again, but let me just say that speed is crucial in this application - There,
 		  I said it again...).
-		  Changed Period into float from uint_32 to avoid casting during calcs (costly).
+		  Changed Period into AvgPeriod=float from uint_32 to avoid casting during calcs (costly).
   - 0.1.1	: Implementation of a sub-microseconds approach to RC timing: SysTick.
 		  Added supporting variables (SysTickBase, SysTickLOAD, SysTickLOADFac) and associated methods.
 		  Note that this approach is valid only for T=RC under 1ms.
 		  Please observe the following references and Credits:
 		  "https://stackoverflow.com/questions/27885330/systick-load-vs-systick-calib"
 		  "http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.dui0497a/Bhcjegci.html"
+  - 0.1.2	: GetCapacitance returns result in pF to be in line with GetResistance.
+		  modified Supporting defined parameters and retired nano_farads conversion factors
   
 */
 
@@ -276,8 +278,8 @@ void directWriteHigh(volatile IO_REG_TYPE *base, IO_REG_TYPE pin)
 
 
 // DEFINES /////////////////////////////////////////////////////////////
-#define VER_Timer555Monostable	"0.1.1"		// 
-#define REL_Timer555Monostable	"04-Mar-2019"	//
+#define VER_Timer555Monostable	"0.1.2"		// 
+#define REL_Timer555Monostable	"08Mar2019"	//
 
 //#define AVGPERIOD_AS_INT	0		// AvgPeriod = Duration / Sample returns an int (without decimals)
 #define AVGPERIOD_AS_FLOAT	1		// AvgPeriod = Duration / Sample returns a float (with decimals)
@@ -311,15 +313,15 @@ void directWriteHigh(volatile IO_REG_TYPE *base, IO_REG_TYPE pin)
 						// Note: this is an expensive feature (time), so here for those who need it
 						// uncomment this line to enable the function
 
-#define FARADS_TO_NANOFARADS 	1E9
+//#define FARADS_TO_NANOFARADS 	1E9		// RETIRED
 #define SECONDS_TO_MICROS 	1E6
 #define FARADS_TO_PICOFARADS 	1E12
 
-#define UNITADJUST_CAP	 	1E3 		// = FARADS_TO_NANOFARADS/SECONDS_TO_MICROS
+#define UNITADJUST_CAP	 	1E6 		// = FARADS_TO_PICOFARADS/SECONDS_TO_MICROS
 #define UNITADJUST_RES	 	1E6		// = FARADS_TO_PICOFARADS/SECONDS_TO_MICROS
 #define LN_3			1.098612289	// Neperien Logarithm of 3.0
 
-#define UCAP_LN_3		910.2392264	// UNITADJUST_CAP / LN_3
+#define UCAP_LN_3		910239.2264	// UNITADJUST_CAP / LN_3
 #define URES_LN_3		910239.2264	// UNITADJUST_RES / LN_3
 
 #define	RISEFALL_ADJUST		1		//Timer Adjustment - Rise&Fall in microsecond to adjust the Timer
