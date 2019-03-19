@@ -1,8 +1,8 @@
 /*
   File:         Timer555Monostable.cpp
-  Version:      0.1.2
+  Version:      0.1.3
   Date:         19-Dec-2018
-  Revision:     08-Mar-2019
+  Revision:     19-Mar-2019
   Author:       Jerome Drouin (jerome.p.drouin@gmail.com)
 
   Editions:	Please go to Timer555Monostable.h for Edition Notes.
@@ -81,7 +81,7 @@ Timer555Monostable::Timer555Monostable(uint8_t _TriggerPin, uint8_t _OutputPin, 
 	//Digital Pins
 	TriggerPin		= _TriggerPin;
 	OutputPin		= _OutputPin;
-	DischargePin		= 0;
+	DischargePin		= -1;
 	ObjecthasDischargePin 	= 0;					// Object Setup without discharge Pin
 
 	// get pin mapping and port for TriggerPin - from PinMode function in Wiring.c 
@@ -125,7 +125,7 @@ Timer555Monostable::Timer555Monostable(uint8_t _TriggerPin, uint8_t _OutputPin, 
 	//Digital Pins
 	TriggerPin		= _TriggerPin;
 	OutputPin		= _OutputPin;
-	DischargePin		= 0;
+	DischargePin		= -1;
 	ObjecthasDischargePin 	= 0;					// Object Setup without discharge Pin
 
 	// get pin mapping and port for TriggerPin - from PinMode function in Wiring.c 
@@ -251,51 +251,122 @@ Timer555Monostable::Timer555Monostable(uint8_t _TriggerPin, uint8_t _OutputPin, 
 // Functions available in Wiring sketches, this library, and other libraries
 
 // Returns the Version
-String Timer555Monostable::GetVersion()
+String Timer555Monostable::GetVersion(void)
 {
 	return VER_Timer555Monostable;
 }
 
 //Returns the Last Version Date
-String Timer555Monostable::GetReleaseDate()
+String Timer555Monostable::GetReleaseDate(void)
 {
 	return REL_Timer555Monostable;
 }
 
 // Returns the Board Type
-String Timer555Monostable::GetBoardType()
+String Timer555Monostable::GetBoardType(void)
 {
 	return TIMER555MONOSTABLE_BOARD_TYPE;
 }
 
 
 // Returns the Method for Timing T=RC
-String Timer555Monostable::GetTimingMethod()
+String Timer555Monostable::GetTimingMethod(void)
 {
 	return TIMER555MONOSTABLE_TIMING_METH;
 }
 
 
-// Returns the Baseline_Cap Parameters
-float Timer555Monostable::GetBaseline_Cap()
+void Timer555Monostable::DisplayObjectSetup(void)
+{
+	Serial.print("\n");
+	Serial.print("\nTimer555Monostable:");
+	Serial.print("\nVersion:");Serial.print(GetVersion());
+	Serial.print("\nRelease:");Serial.print(GetReleaseDate());
+	Serial.print("\nBoard  :");Serial.print(GetBoardType());
+	Serial.print("\n- Pins:");
+	Serial.print("\nTrigger:");Serial.print(GetTriggerPin());
+	Serial.print("\nOutPut :");Serial.print(GetOutputPin());
+	Serial.print("\nDischrg:");
+	if (ObjecthasDischargePin) Serial.print(GetDischargePin());else Serial.print("N/A");
+
+	Serial.print("\n- Main Params:");
+	Serial.print("\nResist R1 :");Serial.print(GetResist_R1());Serial.print(" Ohms");
+	Serial.print("\nCapac  C1 :");Serial.print(GetSysTickLOAD());Serial.print(" pF");
+	Serial.print("\nTiming :");Serial.print(GetTimingMethod());
+
+	#if defined(ENABLE_FREQ_JITTER)
+	Serial.print("\nJitter :ENABLED");
+	Serial.print("\nDelay  : 0-");Serial.print(FREQ_JITTER_MICROS);Serial.print("uS (random)");
+	#else
+	Serial.print("\nJitter :DISABLED");	
+	#endif
+
+	#if defined(TIMER_USE_SYSTICK)
+	Serial.print("\n- SysTick Params:");
+	Serial.print("\nBase    :");Serial.print(GetSysTickBase());
+	Serial.print("\nLOAD    :");Serial.print(GetSysTickLOAD());
+	Serial.print("\nLOAD fac:");Serial.print(GetSysTickLOADFac(),6);
+	#endif
+
+	Serial.print("\n");
+}
+
+
+// Returns the TriggerPin Parameter
+uint8_t	Timer555Monostable::GetTriggerPin(void)
+{
+	return TriggerPin;
+}
+
+
+// Returns the OutputPin Parameter
+uint8_t	Timer555Monostable::GetOutputPin(void)
+{
+	return OutputPin;
+}
+
+
+// Returns the DischargePin Parameter
+uint8_t	Timer555Monostable::GetDischargePin(void)
+{
+	return DischargePin;
+}
+
+
+// Returns the Resist_R1 Parameter
+uint32_t Timer555Monostable::GetResist_R1(void)
+{
+	return Resist_R1;
+}
+
+
+// Returns the Capacit_C1 Parameter
+uint32_t Timer555Monostable::GetCapacit_C1(void)
+{
+	return Capacit_C1;
+}
+
+
+// Returns the Baseline_Cap Parameter
+float Timer555Monostable::GetBaseline_Cap(void)
 {
 	return Baseline_Cap;
 }
 
 // Returns the Baseline_Res Parameters
-float Timer555Monostable::GetBaseline_Res()
+float Timer555Monostable::GetBaseline_Res(void)
 {
 	return Baseline_Res;
 }
 
 // Returns the last available calculated Capacitance
-float Timer555Monostable::GetCapacitance()
+float Timer555Monostable::GetCapacitance(void)
 {
 	return Capacitance;
 }
 
 // Returns the last available calculated Resistance
-float Timer555Monostable::GetResistance()
+float Timer555Monostable::GetResistance(void)
 {
 	return Resistance;
 }
@@ -369,60 +440,12 @@ void  Timer555Monostable::DisableDebug(void)
 }
 
 
-
-//------------------------------------------------------------------------
-//
-//
-//
-//
-/*
-
-uint32_t Timer555Monostable::GetDuration1(void)
-{
-	return Duration1;
-}
-uint32_t Timer555Monostable::GetDuration2(void)
-{
-	return Duration2;
-}
-uint32_t Timer555Monostable::GetDuration3(void)
-{
-	return Duration3;
-}
-uint32_t Timer555Monostable::GetDuration4(void)
-{
-	return Duration4;
-}
-uint32_t Timer555Monostable::GetDuration5(void)
-{
-	return Duration5;
-}
-uint32_t Timer555Monostable::GetDuration6(void)
-{
-	return Duration6;
-}
-uint32_t Timer555Monostable::GetDuration7(void)
-{
-	return Duration7;
-}
-uint32_t Timer555Monostable::GetDuration8(void)
-{
-	return Duration8;
-}
-*/
-//
-//
-//
-//
-//------------------------------------------------------------------------
-
-
 // Returns Calculated Capacitance
 float Timer555Monostable::GetCapacitance(uint8_t samples)
 {
 
 	if (samples <= 0) return 0;
-	if (error < 0) return -1;            			// construction error check
+	if (error < 0) return error;            		// construction error flag
 
 	// Set results to zero before start of read
 	Duration	= 0;
@@ -431,9 +454,15 @@ float Timer555Monostable::GetCapacitance(uint8_t samples)
 	// capacitance read: we read the capacitor 'sample' times
 	for (uint8_t i = 0; i < samples; i++) {    		// loop for samples parameter - simple lowpass filter
 		#if defined(TIMER_USE_MICROS)
-			Duration += RunTimer_Micros();			// (timeout not implemented yet)
+			#if defined(ENABLE_FREQ_JITTER)
+				delayMicroseconds(random(FREQ_JITTER_MICROS));
+			#endif
+			Duration += RunTimer_Micros();		// (timeout not implemented yet)
 		#elif defined(TIMER_USE_SYSTICK)
-			Duration += RunTimer_SysTick();			// (timeout not implemented yet)
+			#if defined(ENABLE_FREQ_JITTER)
+				delayMicroseconds_SysTick(random(FREQ_JITTER_MICROS));
+			#endif
+			Duration += RunTimer_SysTick();		// (timeout not implemented yet)
 		#endif
 
 		//Serial.print("\n-->loop Duration :");	
@@ -476,7 +505,7 @@ float Timer555Monostable::GetResistance(uint8_t samples)
 {
 
 	if (samples <= 0) return 0;
-	if (error < 0) return -1;            			// construction error check
+	if (error < 0) return error;            		// construction error flag
 
 	// Set results to zero before start of read
 	Duration	= 0;
@@ -485,9 +514,15 @@ float Timer555Monostable::GetResistance(uint8_t samples)
 	// capacitance read: we read the capacitor 'sample' times
 	for (uint8_t i = 0; i < samples; i++) {    		// loop for samples parameter - simple lowpass filter
 		#if defined(TIMER_USE_MICROS)
-			Duration += RunTimer_Micros();			// (timeout not implemented yet)
+			#if defined(ENABLE_FREQ_JITTER)
+				delayMicroseconds(random(FREQ_JITTER_MICROS));
+			#endif
+			Duration += RunTimer_Micros();		// (timeout not implemented yet)
 		#elif defined(TIMER_USE_SYSTICK)
-			Duration += RunTimer_SysTick();			// (timeout not implemented yet)
+			#if defined(ENABLE_FREQ_JITTER)
+				delayMicroseconds_SysTick(random(FREQ_JITTER_MICROS));
+			#endif
+			Duration += RunTimer_SysTick();		// (timeout not implemented yet)
 		#endif
 	}
 

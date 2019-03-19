@@ -1,8 +1,8 @@
 /*
   File:         Timer555Monostable.h
-  Version:      0.1.2
+  Version:      0.1.3
   Date:         19-Dec-2018
-  Revision:     08-Mar-2019
+  Revision:     19-Mar-2019
   Author:       Jerome Drouin (jerome.p.drouin@gmail.com)
 
   https://github.com/newEndeavour/Timer555Monostable
@@ -71,7 +71,8 @@
 		  "http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.dui0497a/Bhcjegci.html"
   - 0.1.2	: GetCapacitance returns result in pF to be in line with GetResistance.
 		  modified Supporting defined parameters and retired nano_farads conversion factors
-  
+  - 0.1.3	: Implemented a Frequency Jittering capability via Conditional Compilation Parameters (ENABLE_FREQ_JITTER).
+		  Added member DisplayObjectSetup()
 */
 
 
@@ -84,6 +85,8 @@
 #else
 #include "WProgram.h"
 #endif
+
+#include <Systick_Functions.h>
 
 // Direct I/O through registers and bitmask (from OneWire library)
 
@@ -278,8 +281,8 @@ void directWriteHigh(volatile IO_REG_TYPE *base, IO_REG_TYPE pin)
 
 
 // DEFINES /////////////////////////////////////////////////////////////
-#define VER_Timer555Monostable	"0.1.2"		// 
-#define REL_Timer555Monostable	"08Mar2019"	//
+#define VER_Timer555Monostable	"0.1.3"		// 
+#define REL_Timer555Monostable	"19Mar2019"	//
 
 //#define AVGPERIOD_AS_INT	0		// AvgPeriod = Duration / Sample returns an int (without decimals)
 #define AVGPERIOD_AS_FLOAT	1		// AvgPeriod = Duration / Sample returns a float (with decimals)
@@ -327,6 +330,8 @@ void directWriteHigh(volatile IO_REG_TYPE *base, IO_REG_TYPE pin)
 #define	RISEFALL_ADJUST		1		//Timer Adjustment - Rise&Fall in microsecond to adjust the Timer
 						//in reality this is a variable depending on R1 and C1...
 
+#define FREQ_JITTER_MICROS      10
+#define ENABLE_FREQ_JITTER	1
 
 
 // library interface description ////////////////////////////////////////
@@ -350,36 +355,31 @@ class Timer555Monostable
 	float 		GetBaseline_Cap();
 	float 		GetBaseline_Res();
 
+	uint32_t 	GetResist_R1();
+	uint32_t 	GetCapacit_C1();
+
 	float 		GetAvgFrequency(void);
 	float 		GetAvgPeriod(void);
 	uint32_t 	GetTotal(void);
-	//uint32_t 	GetDuration(void);
 	float 		GetDuration(void);
-
-	/*
-	uint32_t 	GetDuration1(void);
-	uint32_t 	GetDuration2(void);
-	uint32_t 	GetDuration3(void);
-	uint32_t 	GetDuration4(void);
-	uint32_t 	GetDuration5(void);
-	uint32_t 	GetDuration6(void);
-	uint32_t 	GetDuration7(void);
-	uint32_t 	GetDuration8(void);
-	*/
 
 	void  		EnableDebug();
 	void  		DisableDebug();
 	int 		GetAvgPeriodType(void);
 
-	int		GetSysTickBase();
-	int		GetSysTickLOAD();
-	float		GetSysTickLOADFac();
+	int		GetSysTickBase(void);
+	int		GetSysTickLOAD(void);
+	float		GetSysTickLOADFac(void);
 
-	String 		GetVersion();
-	String 		GetReleaseDate();
-	String 		GetBoardType();
-	String 		GetTimingMethod();
+	uint8_t		GetTriggerPin(void);		
+	uint8_t		GetOutputPin(void);		
+	uint8_t		GetDischargePin(void);		
 
+	String 		GetVersion(void);
+	String 		GetReleaseDate(void);
+	String 		GetBoardType(void);
+	String 		GetTimingMethod(void);
+	void		DisplayObjectSetup(void);
 
   // library-accessible "private" interface
   private:
@@ -394,18 +394,6 @@ class Timer555Monostable
 	int	SysTickBase;		//
 	int	SysTickLOAD;		//
 	float	SysTickLOADFac;		//
-
-
-	/*
-	uint32_t Duration1;		//in uS
-	uint32_t Duration2;		//in uS
-	uint32_t Duration3;		//in uS
-	uint32_t Duration4;		//in uS
-	uint32_t Duration5;		//in uS
-	uint32_t Duration6;		//in uS
-	uint32_t Duration7;		//in uS
-	uint32_t Duration8;		//in uS
-	*/
 
 	unsigned long StartTimer;	//in uS	
 	unsigned long StopTimer;	//in uS
