@@ -1,11 +1,11 @@
 /*
   File:         Timer555Monostable.cpp
-  Version:      0.1.3
+  Version:      0.1.4
   Date:         19-Dec-2018
-  Revision:     19-Mar-2019
+  Revision:     16-Jan-2021
   Author:       Jerome Drouin (jerome.p.drouin@gmail.com)
 
-  Editions:	Please go to Timer555Monostable.h for Edition Notes.
+  Editions:	Please go to Timer555Monostable.h for Important Edition Notes.
 
   https://github.com/newEndeavour/Timer555Monostable
 
@@ -280,33 +280,44 @@ void Timer555Monostable::DisplayObjectSetup(void)
 {
 	Serial.print("\n");
 	Serial.print("\nTimer555Monostable:");
-	Serial.print("\nVersion:");Serial.print(GetVersion());
-	Serial.print("\nRelease:");Serial.print(GetReleaseDate());
-	Serial.print("\nBoard  :");Serial.print(GetBoardType());
-	Serial.print("\n- Pins:");
-	Serial.print("\nTrigger:");Serial.print(GetTriggerPin());
-	Serial.print("\nOutPut :");Serial.print(GetOutputPin());
-	Serial.print("\nDischrg:");
+	Serial.print("\nVersion	   : ");Serial.print(GetVersion());
+	Serial.print("\nRelease	   : ");Serial.print(GetReleaseDate());
+	Serial.print("\nBoard  	   : ");Serial.print(GetBoardType());
+	Serial.print("\n- Pins");
+	Serial.print("\nTrigger	   : ");Serial.print(GetTriggerPin());
+	Serial.print("\nOutPut 	   : ");Serial.print(GetOutputPin());
+	Serial.print("\nDischrg    : ");
 	if (ObjecthasDischargePin) Serial.print(GetDischargePin());else Serial.print("N/A");
 
-	Serial.print("\n- Main Params:");
-	Serial.print("\nResist R1 :");Serial.print(GetResist_R1());Serial.print(" Ohms");
-	Serial.print("\nCapac  C1 :");Serial.print(GetSysTickLOAD());Serial.print(" pF");
-	Serial.print("\nTiming :");Serial.print(GetTimingMethod());
+	Serial.print("\n- Main Params");
+	Serial.print("\nResist R1  : ");Serial.print(GetResist_R1());Serial.print(" Ohms");
+	Serial.print("\nCapac  C1  : ");Serial.print(GetSysTickLOAD());Serial.print(" pF");
+	Serial.print("\nTiming     : ");Serial.print(GetTimingMethod());
 
+	Serial.print("\n- Scanning");
+	Serial.print("\nDefault    : ");Serial.print(DEFAULT_SCANS_PER_CYCLE);Serial.print(" Scans/Cycle");
 	#if defined(ENABLE_FREQ_JITTER)
-	Serial.print("\nJitter :ENABLED");
-	Serial.print("\nDelay  : 0-");Serial.print(FREQ_JITTER_MICROS);Serial.print("uS (random)");
+	Serial.print("\nJitter     : ENABLED");
+	Serial.print("\nDelay      : 0-");Serial.print(FREQ_JITTER_MICROS);Serial.print("uS (random)");
 	#else
-	Serial.print("\nJitter :DISABLED");	
+	Serial.print("\nJitter     : DISABLED");	
 	#endif
 
 	#if defined(TIMER_USE_SYSTICK)
-	Serial.print("\n- SysTick Params:");
-	Serial.print("\nBase    :");Serial.print(GetSysTickBase());
-	Serial.print("\nLOAD    :");Serial.print(GetSysTickLOAD());
-	Serial.print("\nLOAD fac:");Serial.print(GetSysTickLOADFac(),6);
+	Serial.print("\n- Timer Method:");Serial.print(TIMER555MONOSTABLE_TIMING_METH);
+
+	Serial.print("\n- SysTick Params");
+	Serial.print("\nBase       : ");Serial.print(GetSysTickBase());
+	Serial.print("\nLOAD       : ");Serial.print(GetSysTickLOAD());
+	Serial.print("\nLOAD fac   : ");Serial.print(GetSysTickLOADFac(),6);
 	#endif
+
+	#if defined(TIMER_USE_MICROS)
+	Serial.print("\n- Timer Method:");Serial.print(TIMER555MONOSTABLE_TIMING_METH);
+	#endif
+
+	Serial.print("\n- Error");
+	Serial.print("\nFlag       : ");Serial.print(GetError());
 
 	Serial.print("\n");
 }
@@ -359,17 +370,6 @@ float Timer555Monostable::GetBaseline_Res(void)
 	return Baseline_Res;
 }
 
-// Returns the last available calculated Capacitance
-float Timer555Monostable::GetCapacitance(void)
-{
-	return Capacitance;
-}
-
-// Returns the last available calculated Resistance
-float Timer555Monostable::GetResistance(void)
-{
-	return Resistance;
-}
 
 // Returns the last available calculated AvgFrequency
 float Timer555Monostable::GetAvgFrequency(void)
@@ -408,17 +408,20 @@ uint32_t Timer555Monostable::GetTotal(void)
 	return Total;
 }
 
+
 // Returns the last available SysTickBase
 int Timer555Monostable::GetSysTickBase(void)
 {
 	return SysTickBase;
 }
 
+
 // Returns the last available SysTickLOAD
 int Timer555Monostable::GetSysTickLOAD(void)
 {
 	return SysTickLOAD;
 }
+
 
 // Returns the last available SysTickLOADFac
 float Timer555Monostable::GetSysTickLOADFac(void)
@@ -433,6 +436,7 @@ void  Timer555Monostable::EnableDebug(void)
 	en_debug = 1;
 }
 
+
 void  Timer555Monostable::DisableDebug(void)
 {
 	//Disable debug
@@ -440,11 +444,25 @@ void  Timer555Monostable::DisableDebug(void)
 }
 
 
+int  Timer555Monostable::GetError(void)
+{
+	return error;
+}
+
+
+
+// Returns Calculated Capacitance using the default param
+float Timer555Monostable::GetCapacitance(void)
+{
+	return GetCapacitance(DEFAULT_SCANS_PER_CYCLE);
+}
+
+
 // Returns Calculated Capacitance
 float Timer555Monostable::GetCapacitance(uint8_t samples)
 {
 
-	if (samples <= 0) return 0;
+	if (samples <= 0) return ERROR_FLAG_INVALID_SAMPLE;
 	if (error < 0) return error;            		// construction error flag
 
 	// Set results to zero before start of read
@@ -458,9 +476,14 @@ float Timer555Monostable::GetCapacitance(uint8_t samples)
 				delayMicroseconds(random(FREQ_JITTER_MICROS));
 			#endif
 			Duration += RunTimer_Micros();		// (timeout not implemented yet)
+
 		#elif defined(TIMER_USE_SYSTICK)
 			#if defined(ENABLE_FREQ_JITTER)
-				delayMicroseconds_SysTick(random(FREQ_JITTER_MICROS));
+				#if defined(TIMER_USE_SYSTICK)
+					delayMicroseconds_SysTick(random(FREQ_JITTER_MICROS));
+				#elif defined(TIMER_USE_MICROS)
+					delayMicroseconds(random(FREQ_JITTER_MICROS));
+				#endif
 			#endif
 			Duration += RunTimer_SysTick();		// (timeout not implemented yet)
 		#endif
@@ -500,11 +523,19 @@ float Timer555Monostable::GetCapacitance(uint8_t samples)
 
 }
 
+
+// Returns Calculated Resistance using the default param
+float Timer555Monostable::GetResistance(void)
+{
+	return GetResistance(DEFAULT_SCANS_PER_CYCLE);
+}
+
+
 // Returns Calculated Resistance
 float Timer555Monostable::GetResistance(uint8_t samples)
 {
 
-	if (samples <= 0) return 0;
+	if (samples <= 0) return ERROR_FLAG_INVALID_SAMPLE;
 	if (error < 0) return error;            		// construction error flag
 
 	// Set results to zero before start of read
@@ -518,9 +549,10 @@ float Timer555Monostable::GetResistance(uint8_t samples)
 				delayMicroseconds(random(FREQ_JITTER_MICROS));
 			#endif
 			Duration += RunTimer_Micros();		// (timeout not implemented yet)
+
 		#elif defined(TIMER_USE_SYSTICK)
-			#if defined(ENABLE_FREQ_JITTER)
-				delayMicroseconds_SysTick(random(FREQ_JITTER_MICROS));
+			#if defined(ENABLE_FREQ_JITTER)				
+				//delayMicroseconds_SysTick(random(FREQ_JITTER_MICROS));
 			#endif
 			Duration += RunTimer_SysTick();		// (timeout not implemented yet)
 		#endif
@@ -615,15 +647,26 @@ float Timer555Monostable::RunTimer_SysTick(void) {
     DIRECT_WRITE_HIGH(sReg, sBit);	// TriggerPin Register high -> Stop Trigger pulse    
      
     //---- T=RC Read --------------------
-    StartTimer 		= SysTick->VAL;	// Start Timer 
-    while (DIRECT_READ(rReg, rBit)) {	// while Output pin is HIGH
-        #if defined(ENABLE_TOTAL_CALC)
-		Total++;			// Count loops -> Total variable	
-	#endif
-    }
-    StopTimer   	= SysTick->VAL;	// Stop Timer
+    #if defined(TIMER_USE_MICROS)
+    	StartTimer 	= micros();	// Start Timer 
+    	while (DIRECT_READ(rReg, rBit)) {	// while Output pin is HIGH
+        		#if defined(ENABLE_TOTAL_CALC)
+			Total++;			// Count loops -> Total variable	
+		#endif
+    	}
+    	StopTimer   	= micros();	// Stop Timer
 
-    if (StartTimer<StopTimer) StartTimer += SysTickLOAD;	
+    #elif defined(TIMER_USE_SYSTICK)
+    	StartTimer 	= SysTick->VAL;	// Start Timer 
+    	while (DIRECT_READ(rReg, rBit)) {	// while Output pin is HIGH
+        		#if defined(ENABLE_TOTAL_CALC)
+			Total++;			// Count loops -> Total variable	
+		#endif
+    	}
+    	StopTimer   	= SysTick->VAL;	// Stop Timer
+    	if (StartTimer<StopTimer) StartTimer += SysTickLOAD;	
+
+    #endif
 
     interrupts();			// Restore interrupts
 
@@ -667,21 +710,22 @@ int Timer555Monostable::OneCycle_Resistance(void) {
 
 }
 
+
 // Error flag handling
 void Timer555Monostable::ResetErrors(void)
 {
 	// initialize this instance's variables
-	error = 1;
+	error = ERROR_FLAG_NO_ERROR;
 
 	#ifdef NUM_DIGITAL_PINS
-	if (TriggerPin >= NUM_DIGITAL_PINS) error = -2;
-	if (OutputPin >= NUM_DIGITAL_PINS) error = -2;
-	if (ObjecthasDischargePin)
-		if (DischargePin >= NUM_DIGITAL_PINS) error = -2;
+		if (TriggerPin >= NUM_DIGITAL_PINS) 	error = ERROR_FLAG_INVALID_PINSET;
+		if (OutputPin >= NUM_DIGITAL_PINS) 	error = ERROR_FLAG_INVALID_PINSET;
+		if (ObjecthasDischargePin)
+		if (DischargePin >= NUM_DIGITAL_PINS) 	error = ERROR_FLAG_INVALID_PINSET;
 	#endif
 
-	if (Resist_R1<0) 	error =-1;
-	if (Capacit_C1<0) 	error =-1;
+	if (Resist_R1<0) 	error = ERROR_FLAG_INVALID_RESIS;
+	if (Capacit_C1<0) 	error = ERROR_FLAG_INVALID_CAPAC;
 
 }
 
@@ -691,12 +735,21 @@ void Timer555Monostable::Calibrate_SysTickParams(void)
 {
     noInterrupts();			// Disable interrupts
     
-    StartTimer 		= SysTick->VAL;	// Start Timer 
-    StopTimer   	= SysTick->VAL;	// Stop Timer
-    SysTickBase    	= StartTimer - StopTimer;
+    #if defined(TIMER_USE_MICROS)
+	StartTimer 	= micros();	// Start Timer 
+    	StopTimer   	= micros();	// Stop Timer
+    	SysTickBase    	= StartTimer - StopTimer;
 
-    SysTickLOAD		= SysTick->LOAD;
-    SysTickLOADFac	= (float)1000/((float)SysTickLOAD+1);
+    	SysTickLOAD	= 0;
+    	SysTickLOADFac	= 0;
+    #elif defined(TIMER_USE_SYSTICK)
+	StartTimer 	= SysTick->VAL;	// Start Timer 
+    	StopTimer   	= SysTick->VAL;	// Stop Timer
+    	SysTickBase    	= StartTimer - StopTimer;
+
+    	SysTickLOAD	= SysTick->LOAD;
+    	SysTickLOADFac	= (float)1000/((float)SysTickLOAD+1);
+    #endif    
 
     interrupts();			// Restore interrupts
 }

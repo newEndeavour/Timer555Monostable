@@ -1,8 +1,8 @@
 /*
   File:         Timer555Monostable.h
-  Version:      0.1.3
+  Version:      0.1.4
   Date:         19-Dec-2018
-  Revision:     19-Mar-2019
+  Revision:     16-Jan-2021
   Author:       Jerome Drouin (jerome.p.drouin@gmail.com)
 
   https://github.com/newEndeavour/Timer555Monostable
@@ -47,15 +47,20 @@
 
   Editions:
   - 0.0.1	: First version
+
   - 0.0.2	: Additional member access methods
+
   - 0.0.3	: Added DischargePin to allow for a full discharge of the Capacitor. 
 		  In certain high frequency cases, the cap has no time to discharge fully
 		  a new trigger occurs therefore shortening the time to 2/3.Vcc.
 		  Modification of the OneCycle method. 
+
   - 0.0.4	: DischargePin is now optional (new constructor)
+
   - 0.0.5	: Added Resistance Meter Capabilities from a Reference Capacitor C1
 		  Removed bias_correction factor		  
 		  Constructor modified to handle new Resistance Meter Capabilities
+
   - 0.0.6	: Added a debug enable mode when debug must be done in specific areas of code only
 		  Added Duration as output parameter
 		  Modify way the Capacitance / Resistance is calculated from the Average Period for increased speed
@@ -63,16 +68,33 @@
 		  important, so will not mention it again, but let me just say that speed is crucial in this application - There,
 		  I said it again...).
 		  Changed Period into AvgPeriod=float from uint_32 to avoid casting during calcs (costly).
+
   - 0.1.1	: Implementation of a sub-microseconds approach to RC timing: SysTick.
 		  Added supporting variables (SysTickBase, SysTickLOAD, SysTickLOADFac) and associated methods.
-		  Note that this approach is valid only for T=RC under 1ms.
+		  Added defines TIMER_USE_MICROS and TIMER_USE_SYSTICK
+		  Note the SysTick approach is valid only for T=RC under 1ms.
 		  Please observe the following references and Credits:
 		  "https://stackoverflow.com/questions/27885330/systick-load-vs-systick-calib"
 		  "http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.dui0497a/Bhcjegci.html"
-  - 0.1.2	: GetCapacitance returns result in pF to be in line with GetResistance.
+
+		  WARNING: SysTick is only available for certain processors and has not been tested for all Arduinos.
+		  
+		  SysTick functionality tested for:
+		  Board			Processor				Working
+		  1.Arduino MKR 1000 	Atmel ATSAMW25 (SAMD21 Cortex-M0) 	Yes
+		  2.Arduino MEGA 2560R	Atmel ATmega2560				No
+		  3.Arduino UNO		Atmel ATmega328P				No
+		 
+  - 0.1.2	: GetCapacitance returns result in pF to be in line with GetResistance in Ohms.
 		  modified Supporting defined parameters and retired nano_farads conversion factors
+
   - 0.1.3	: Implemented a Frequency Jittering capability via Conditional Compilation Parameters (ENABLE_FREQ_JITTER).
 		  Added member DisplayObjectSetup()
+
+  - 0.1.4	: Modified the code to improve board compatility with SysTick.
+		  When TIMER_USE_SYSTICK is enabled, make sure your board is compatible.
+		  Member Timer555Monostable::RunTimer_SysTick(void) is now defaulting back to micros when SysTick is not enabled.
+
 */
 
 
@@ -86,7 +108,7 @@
 #include "WProgram.h"
 #endif
 
-#include <Systick_Functions.h>
+//#include <Systick_Functions.h>
 
 // Direct I/O through registers and bitmask (from OneWire library)
 
@@ -281,30 +303,29 @@ void directWriteHigh(volatile IO_REG_TYPE *base, IO_REG_TYPE pin)
 
 
 // DEFINES /////////////////////////////////////////////////////////////
-#define VER_Timer555Monostable	"0.1.3"		// 
-#define REL_Timer555Monostable	"19Mar2019"	//
+#define VER_Timer555Monostable	"0.1.4"		// 
+#define REL_Timer555Monostable	"27Mar2019"	//
+
+#define ERROR_FLAG_INVALID_SAMPLE	  -3	// error flag
+#define ERROR_FLAG_INVALID_PINSET	  -2	// error flag
+#define ERROR_FLAG_INVALID_RESIS	  -1	// error flag
+#define ERROR_FLAG_INVALID_CAPAC	  -1	// error flag
+#define ERROR_FLAG_NO_ERROR	   	   0	// error flag
 
 //#define AVGPERIOD_AS_INT	0		// AvgPeriod = Duration / Sample returns an int (without decimals)
 #define AVGPERIOD_AS_FLOAT	1		// AvgPeriod = Duration / Sample returns a float (with decimals)
 
-//
-//
-//	TIMER DEFINITION: WARNING !
-//	ONLY CHANGE IF YOU KNOW WHAT YOU ARE DOING !!!!
-//
-//
-//#define TIMER_USE_MICROS	  1		// Timer uses the Micros Approach for timing T=RC
-#define TIMER_USE_SYSTICK	1		// Timer uses the SysTick Register Approach for timing T=RC
+//////////////////////////////////////////////////////////////////
+//								//		
+//	TIMER DEFINITION: WARNING !				//
+//	ONLY CHANGE IF YOU KNOW WHAT YOU ARE DOING !!!!		//
+//								//
+//////////////////////////////////////////////////////////////////
+#define TIMER_USE_MICROS	  	1		// Timer uses the Micros Approach for timing T=RC
+//#define TIMER_USE_SYSTICK		1		// Timer uses the SysTick Register Approach for timing T=RC
 						// WARNING!!the SYSTICK Method valid only 
 						// if Period < 1ms (1000uS). 
-						// Nothing is done to manage Switch over in case Time is longer 
-//
-//
-//
-//
-//
-
-
+						// Nothing is done to switch over to use_micros() in case Time is longer 
 
 #if defined (TIMER_USE_MICROS)
 #define TIMER555MONOSTABLE_TIMING_METH "MICROS"
@@ -312,26 +333,36 @@ void directWriteHigh(volatile IO_REG_TYPE *base, IO_REG_TYPE pin)
 #define TIMER555MONOSTABLE_TIMING_METH "SYSTICK"
 #endif
 
+
+#define SECONDS_TO_MICROS 	1E6
+#define FARADS_TO_PICOFARADS 	1E12
+#define UNITADJUST_CAP	 	1E6 		// = FARADS_TO_PICOFARADS/SECONDS_TO_MICROS
+#define UNITADJUST_RES	 	1E6		// = FARADS_TO_PICOFARADS/SECONDS_TO_MICROS
+#define LN_3			1.098612289	// Neperien Logarithm of 3.0
+#define UCAP_LN_3		910239.2264	// UNITADJUST_CAP / LN_3
+#define URES_LN_3		910239.2264	// UNITADJUST_RES / LN_3
+
+#define DEFAULT_SCANS_PER_CYCLE   8		// Default number of Sensor Scans per Cycle	
+
 //#define ENABLE_TOTAL_CALC	  1		// Object Enables the Calculation of Total = Number of Loops inside Timer	
 						// Note: this is an expensive feature (time), so here for those who need it
 						// uncomment this line to enable the function
 
-//#define FARADS_TO_NANOFARADS 	1E9		// RETIRED
-#define SECONDS_TO_MICROS 	1E6
-#define FARADS_TO_PICOFARADS 	1E12
+//////////////////////////////////////////////////////////////////
+//								//		
+//	FREQUENCY JITTERING: WARNING !				//
+//	ONLY CHANGE IF YOU KNOW WHAT YOU ARE DOING !!!!		//
+//								//
+//////////////////////////////////////////////////////////////////
+#define ENABLE_FREQ_JITTER	1		//if defined Enables Frequency Jittering between Samples of the same Scan
 
-#define UNITADJUST_CAP	 	1E6 		// = FARADS_TO_PICOFARADS/SECONDS_TO_MICROS
-#define UNITADJUST_RES	 	1E6		// = FARADS_TO_PICOFARADS/SECONDS_TO_MICROS
-#define LN_3			1.098612289	// Neperien Logarithm of 3.0
-
-#define UCAP_LN_3		910239.2264	// UNITADJUST_CAP / LN_3
-#define URES_LN_3		910239.2264	// UNITADJUST_RES / LN_3
-
-#define	RISEFALL_ADJUST		1		//Timer Adjustment - Rise&Fall in microsecond to adjust the Timer
-						//in reality this is a variable depending on R1 and C1...
-
-#define FREQ_JITTER_MICROS      10
-#define ENABLE_FREQ_JITTER	1
+#if defined (ENABLE_FREQ_JITTER)
+//#define FREQ_JITTER_MICROS      10		//Frequency Jittering delay in Microseconds
+//#define FREQ_JITTER_MICROS      20		//Frequency Jittering delay in Microseconds
+//#define FREQ_JITTER_MICROS      30		//Frequency Jittering delay in Microseconds
+#define FREQ_JITTER_MICROS      50		//Frequency Jittering delay in Microseconds
+//#define FREQ_JITTER_MICROS      100		//Frequency Jittering delay in Microseconds
+#endif
 
 
 // library interface description ////////////////////////////////////////
@@ -347,10 +378,10 @@ class Timer555Monostable
 	Timer555Monostable(uint8_t _TriggerPin, uint8_t _OutputPin, uint8_t _DischargePin, uint32_t _R1, float _C1, float _Baseline_Cap, float _Baseline_Res);
 
 	float 		GetCapacitance(uint8_t samples);
-	float 		GetResistance(uint8_t samples);
+	float 		GetCapacitance(void);
 
-	float 		GetCapacitance();
-	float 		GetResistance();
+	float 		GetResistance(uint8_t samples);
+	float 		GetResistance(void);
 
 	float 		GetBaseline_Cap();
 	float 		GetBaseline_Res();
@@ -365,6 +396,8 @@ class Timer555Monostable
 
 	void  		EnableDebug();
 	void  		DisableDebug();
+	int		GetError(void);
+
 	int 		GetAvgPeriodType(void);
 
 	int		GetSysTickBase(void);
@@ -395,8 +428,9 @@ class Timer555Monostable
 	int	SysTickLOAD;		//
 	float	SysTickLOADFac;		//
 
-	unsigned long StartTimer;	//in uS	
-	unsigned long StopTimer;	//in uS
+	unsigned long StartTimer;		//in uS	
+	unsigned long StopTimer;		//in uS
+
 	//unsigned long Duration;		//in uS
 	float 	 Duration;		//in uS
 
